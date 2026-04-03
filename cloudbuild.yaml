@@ -1,0 +1,27 @@
+steps:
+  # 1. Build la imaginea Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-taskflow/hello-world-app:$TAG_NAME'
+      - '.'
+
+  # 2. Push la imaginea Docker în Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'push'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-taskflow/hello-world-app:$TAG_NAME'
+
+  # 3. Deploy în Cloud Run folosind imaginea proaspat creata
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'hello-world-app'
+      - '--image'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-taskflow/hello-world-app:$TAG_NAME'
+      - '--region'
+      - 'europe-west1'
+      - '--allow-unauthenticated'
