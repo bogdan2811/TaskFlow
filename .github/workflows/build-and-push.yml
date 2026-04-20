@@ -53,4 +53,4 @@ jobs:
           service: taskflow-app
           region: europe-west1
           image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/taskflow-repo/taskflow:latest
-          flags: '--vpc-connector=run-to-tf-vpc-conn --route-ipv4-all-through-vpc-connector=false'
+          flags: '--vpc-connector=run-to-tf-vpc-conn --vpc-egress=private-ranges-only'
