@@ -22,4 +22,4 @@ ENV PORT 8080
 
 # Pornim aplicația folosind gunicorn. 
 # --bind :$PORT îi spune să asculte pe portul setat de Cloud Run
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
+CMD exec uvicorn app:app --host 0.0.0.0 --port $PORT

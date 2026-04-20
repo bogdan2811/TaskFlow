@@ -1,33 +1,43 @@
 import re
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
-from extensions import db
+import os
+from datetime import timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from jose import jwt
+from passlib.context import CryptContext
+
+from extensions import get_db
 from models.user import User
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+router = APIRouter(prefix='/api/auth', tags=['auth'])
+
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+
+JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'jwt-change-me-in-production')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRE_MINUTES = 60
+
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 
 
-@auth_bp.route('/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok'}), 200
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    confirmPassword: str
+    acceptTerms: bool
 
 
-@auth_bp.route('/users', methods=['GET'])
-def get_users():
-    users = User.query.all()
-    return jsonify([u.to_dict() for u in users]), 200
-
-# ---------------------------------------------------------------------------
-# Validation helpers
-# ---------------------------------------------------------------------------
-
-_EMAIL_RE = re.compile(
-    r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
-)
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 
 def _validate_username(username: str):
-    """Return (ok, error_message). Called after trim."""
     if len(username) > 20:
         return False, 'Provide a shorter username'
     if len(username) < 5 or ' ' in username:
@@ -36,7 +46,6 @@ def _validate_username(username: str):
 
 
 def _validate_email(email: str):
-    """Return (ok, error_message). Called after trim + lower."""
     if len(email) > 254:
         return False, 'Provide a shorter email address'
     if len(email) < 5 or not _EMAIL_RE.match(email):
@@ -45,15 +54,6 @@ def _validate_email(email: str):
 
 
 def _validate_password(password: str):
-    """Return (ok, error_message).
-
-    Rules:
-      - 8–64 characters
-      - no spaces
-      - at least one uppercase letter
-      - at least one lowercase letter
-      - at least one digit
-    """
     if len(password) < 8 or len(password) > 64:
         return False, 'Password must be between 8 and 64 characters'
     if ' ' in password:
@@ -67,86 +67,78 @@ def _validate_password(password: str):
     return True, None
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+@router.get('/health')
+def health():
+    return {'status': 'ok'}
 
-@auth_bp.route('/register', methods=['POST'])
-def register():
-    data = request.get_json(silent=True) or {}
 
-    username_raw = data.get('username', '').strip()
-    email_raw = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-    confirm_password = data.get('confirmPassword', '')
-    accept_terms = data.get('acceptTerms', False)
+@router.get('/users')
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return [u.to_dict() for u in users]
 
-    # ── 1. Required fields ──────────────────────────────────────────────────
-    if not all([username_raw, email_raw, password, confirm_password]):
-        return jsonify({'error': 'Missing fields'}), 400
 
-    # ── 2. Terms ─────────────────────────────────────────────────────────────
+@router.post('/register', status_code=201)
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    username_raw = body.username.strip()
+    email_raw = body.email.strip().lower()
+    password = body.password
+    confirm_password = body.confirmPassword
+    accept_terms = body.acceptTerms
+
     if not accept_terms:
-        return jsonify({'field': 'acceptTerms', 'error': 'You must accept the Terms & Conditions'}), 400
+        raise HTTPException(status_code=400, detail={'field': 'acceptTerms', 'error': 'You must accept the Terms & Conditions'})
 
-    # ── 3. Format validations ────────────────────────────────────────────────
     ok, err = _validate_username(username_raw)
     if not ok:
-        return jsonify({'field': 'username', 'error': err}), 422
+        raise HTTPException(status_code=422, detail={'field': 'username', 'error': err})
 
     ok, err = _validate_email(email_raw)
     if not ok:
-        return jsonify({'field': 'email', 'error': err}), 422
+        raise HTTPException(status_code=422, detail={'field': 'email', 'error': err})
 
     ok, err = _validate_password(password)
     if not ok:
-        return jsonify({'field': 'password', 'error': err}), 422
+        raise HTTPException(status_code=422, detail={'field': 'password', 'error': err})
 
     if password != confirm_password:
-        return jsonify({'field': 'confirmPassword', 'error': 'Passwords do not match'}), 422
+        raise HTTPException(status_code=422, detail={'field': 'confirmPassword', 'error': 'Passwords do not match'})
 
-    # ── 4. Uniqueness checks ─────────────────────────────────────────────────
-    if User.query.filter(db.func.lower(User.username) == username_raw.lower()).first():
-        return jsonify({'field': 'username', 'error': 'Username already exists'}), 409
+    if db.query(User).filter(func.lower(User.username) == username_raw.lower()).first():
+        raise HTTPException(status_code=409, detail={'field': 'username', 'error': 'Username already exists'})
 
-    if User.query.filter_by(email=email_raw).first():
-        return jsonify({'field': 'email', 'error': 'An account with this email already exists'}), 409
+    if db.query(User).filter_by(email=email_raw).first():
+        raise HTTPException(status_code=409, detail={'field': 'email', 'error': 'An account with this email already exists'})
 
-    # ── 5. Create user ───────────────────────────────────────────────────────
     user = User(
         username=username_raw,
         email=email_raw,
+        password_hash=pwd_context.hash(password),
     )
-    user.set_password(password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
-    db.session.add(user)
-    db.session.commit()
-
-    return jsonify({
-        'message': 'Account created successfully',
-        'user': user.to_dict(),
-    }), 201
+    return {'message': 'Account created successfully', 'user': user.to_dict()}
 
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.get_json(silent=True) or {}
-
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+@router.post('/login')
+def login(body: LoginRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    password = body.password
 
     if not email or not password:
-        return jsonify({'error': 'Missing fields'}), 400
+        raise HTTPException(status_code=400, detail={'error': 'Missing fields'})
 
-    user = User.query.filter_by(email=email).first()
+    user = db.query(User).filter_by(email=email).first()
 
-    if not user or not user.check_password(password):
-        return jsonify({'error': 'Invalid email or password'}), 401
+    if not user or not pwd_context.verify(password, user.password_hash):
+        raise HTTPException(status_code=401, detail={'error': 'Invalid email or password'})
 
-    token = create_access_token(identity=str(user.user_id))
+    token = jwt.encode(
+        {'sub': str(user.user_id), 'exp': __import__('datetime').datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MINUTES)},
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
 
-    return jsonify({
-        'message': 'Login successful',
-        'token': token,
-        'user': user.to_dict(),
-    }), 200
+    return {'message': 'Login successful', 'token': token, 'user': user.to_dict()}
