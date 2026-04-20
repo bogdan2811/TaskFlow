@@ -1,13 +1,15 @@
 import re
 import os
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from extensions import get_db
@@ -35,6 +37,33 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class EditAccountRequest(BaseModel):
+    currentPassword: str
+    username: Optional[str] = None
+    email: Optional[str] = None
+    newPassword: Optional[str] = None
+    confirmNewPassword: Optional[str] = None
+
+
+security = HTTPBearer()
+
+
+def _get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> User:
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = int(payload['sub'])
+    except (JWTError, KeyError):
+        raise HTTPException(status_code=401, detail={'error': 'Invalid or expired token'})
+
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail={'error': 'User not found'})
+    return user
 
 
 def _validate_username(username: str):
@@ -142,3 +171,47 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     )
 
     return {'message': 'Login successful', 'token': token, 'user': user.to_dict()}
+
+
+@router.patch('/account')
+def edit_account(
+    body: EditAccountRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    if not body.currentPassword:
+        raise HTTPException(status_code=400, detail={'error': 'Missing fields'})
+
+    if not pwd_context.verify(body.currentPassword, current_user.password_hash):
+        raise HTTPException(status_code=401, detail={'field': 'currentPassword', 'error': 'Incorrect password'})
+
+    if body.username is not None:
+        username_raw = body.username.strip()
+        ok, err = _validate_username(username_raw)
+        if not ok:
+            raise HTTPException(status_code=422, detail={'field': 'username', 'error': err})
+        if db.query(User).filter(func.lower(User.username) == username_raw.lower(), User.user_id != current_user.user_id).first():
+            raise HTTPException(status_code=409, detail={'field': 'username', 'error': 'Username already exists'})
+        current_user.username = username_raw
+
+    if body.email is not None:
+        email_raw = body.email.strip().lower()
+        ok, err = _validate_email(email_raw)
+        if not ok:
+            raise HTTPException(status_code=422, detail={'field': 'email', 'error': err})
+        if db.query(User).filter(User.email == email_raw, User.user_id != current_user.user_id).first():
+            raise HTTPException(status_code=409, detail={'field': 'email', 'error': 'Email already exists'})
+        current_user.email = email_raw
+
+    if body.newPassword is not None:
+        ok, err = _validate_password(body.newPassword)
+        if not ok:
+            raise HTTPException(status_code=422, detail={'field': 'newPassword', 'error': err})
+        if body.newPassword != body.confirmNewPassword:
+            raise HTTPException(status_code=422, detail={'field': 'confirmNewPassword', 'error': 'Passwords do not match'})
+        current_user.password_hash = pwd_context.hash(body.newPassword)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {'message': 'Account updated successfully', 'user': current_user.to_dict()}
