@@ -1,6 +1,6 @@
 import os
 from flask import Flask
-from extensions import db
+from extensions import db, jwt
 
 
 def create_app() -> Flask:
@@ -11,8 +11,10 @@ def create_app() -> Flask:
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-change-me-in-production')
 
     db.init_app(app)
+    jwt.init_app(app)
 
     from routes.auth import auth_bp
     app.register_blueprint(auth_bp)
