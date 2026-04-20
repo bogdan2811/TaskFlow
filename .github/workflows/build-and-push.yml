@@ -45,3 +45,12 @@ jobs:
         run: |
           docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:${{ github.sha }}
           docker push $GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: taskflow-app
+          region: europe-west1
+          image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/taskflow-repo/taskflow:latest
+          flags: '--vpc-connector=run-to-tf-vpc-conn --route-ipv4-all-through-vpc-connector=false'
