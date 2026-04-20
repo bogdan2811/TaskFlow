@@ -105,7 +105,7 @@ def register():
         return jsonify({'field': 'confirmPassword', 'error': 'Passwords do not match'}), 422
 
     # ── 4. Uniqueness checks ─────────────────────────────────────────────────
-    if User.query.filter_by(username_lower=username_raw.lower()).first():
+    if User.query.filter(db.func.lower(User.username) == username_raw.lower()).first():
         return jsonify({'field': 'username', 'error': 'Username already exists'}), 409
 
     if User.query.filter_by(email=email_raw).first():
@@ -114,7 +114,6 @@ def register():
     # ── 5. Create user ───────────────────────────────────────────────────────
     user = User(
         username=username_raw,
-        username_lower=username_raw.lower(),
         email=email_raw,
     )
     user.set_password(password)
