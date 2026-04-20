@@ -5,6 +5,17 @@ from models.user import User
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
+
+@auth_bp.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'}), 200
+
+
+@auth_bp.route('/users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    return jsonify([u.to_dict() for u in users]), 200
+
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
