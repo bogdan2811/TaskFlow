@@ -1,40 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - TaskFlow</title>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h1 { margin-bottom: 1.5rem; font-size: 1.5rem; color: #333; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; color: #555; }
-        input { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-        input:focus { outline: none; border-color: #4f46e5; }
-        button { width: 100%; padding: 0.75rem; background: #4f46e5; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; }
-        button:hover { background: #4338ca; }
-        .error { color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; }
-        .link { text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #555; }
-        .link a { color: #4f46e5; text-decoration: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Segoe UI", sans-serif;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at 20% 40%, rgba(31, 182, 255, 0.2), transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.2), transparent 20%),
+                linear-gradient(135deg, #02040f, #071127, #100a2b);
+        }
+
+        .card {
+            width: 100%;
+            max-width: 480px;
+            padding: 40px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.45),
+                0 0 40px rgba(124, 58, 237, 0.15);
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #93c5fd;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 2rem;
+        }
+
+        .input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            outline: none;
+        }
+
+        .input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(90deg, #14b7ff, #6a5cff, #c026d3);
+            box-shadow:
+                0 0 20px rgba(20, 183, 255, 0.3),
+                0 0 30px rgba(192, 38, 211, 0.2);
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error {
+            margin-top: 12px;
+            color: #f87171;
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .footer a {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
+
 <body>
+
     <div class="card">
-        <h1>Login to TaskFlow</h1>
-        <div id="error" class="error" style="display:none;"></div>
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="you@example.com">
+
+        <a href="/" class="back">← Back</a>
+
+        <h1>Login</h1>
+
+        <form onsubmit="event.preventDefault(); doLogin();">
+            <input type="email" id="email" class="input" placeholder="Email Address" required>
+            <input type="password" id="password" class="input" placeholder="Password" required>
+
+            <button class="btn">Login</button>
+        </form>
+
+        <div id="error" class="error"></div>
+
+        <div class="footer">
+            Don't have an account? <a href="/register">Create one</a>
         </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="••••••••">
-        </div>
-        <button onclick="doLogin()">Login</button>
-        <div class="link">Don't have an account? <a href="/register">Register</a></div>
+
     </div>
+
     <script>
         async function doLogin() {
             const email = document.getElementById('email').value;
@@ -51,6 +162,8 @@
 
             if (res.ok) {
                 localStorage.setItem('token', data.token);
+
+                // momentan nu ai dashboard → du-te pe home
                 window.location.href = '/dashboard';
             } else {
                 errorEl.style.display = 'block';
@@ -58,5 +171,7 @@
             }
         }
     </script>
+
 </body>
+
 </html>

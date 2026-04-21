@@ -1,54 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - TaskFlow</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h1 { margin-bottom: 1.5rem; font-size: 1.5rem; color: #333; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; color: #555; }
-        input { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-        input:focus { outline: none; border-color: #4f46e5; }
-        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-        .checkbox-group input { width: auto; }
-        button { width: 100%; padding: 0.75rem; background: #4f46e5; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; }
-        button:hover { background: #4338ca; }
-        .error { color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; }
-        .link { text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #555; }
-        .link a { color: #4f46e5; text-decoration: none; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at 20% 40%, rgba(31, 182, 255, 0.20), transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.20), transparent 20%),
+                linear-gradient(135deg, #02040f, #071127, #100a2b);
+            padding: 24px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.45),
+                0 0 40px rgba(124, 58, 237, 0.15);
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #93c5fd;
+            text-decoration: none;
+            font-size: 0.92rem;
+        }
+
+        .back:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .error {
+            color: #f87171;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            text-align: center;
+            display: none;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.18);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s ease;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-top: 3px;
+            accent-color: #6a5cff;
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            line-height: 1.5;
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(90deg, #14b7ff, #6a5cff, #c026d3);
+            box-shadow:
+                0 0 20px rgba(20, 183, 255, 0.3),
+                0 0 30px rgba(192, 38, 211, 0.2);
+            transition: 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.62);
+        }
+
+        .link a {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 560px) {
+            .card {
+                padding: 28px 22px;
+                border-radius: 22px;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="card">
+        <a href="/" class="back">← Back</a>
+
         <h1>Create an account</h1>
-        <div id="error" class="error" style="display:none;"></div>
+
+        <div id="error" class="error"></div>
+
         <div class="form-group">
             <label for="username">Username</label>
             <input type="text" id="username" placeholder="Username">
         </div>
+
         <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" placeholder="you@example.com">
         </div>
+
         <div class="form-group">
             <label for="password">Password</label>
             <input type="password" id="password" placeholder="••••••••">
         </div>
+
         <div class="form-group">
             <label for="confirmPassword">Confirm Password</label>
             <input type="password" id="confirmPassword" placeholder="••••••••">
         </div>
+
         <div class="form-group checkbox-group">
             <input type="checkbox" id="acceptTerms">
-            <label for="acceptTerms">I accept the Terms & Conditions</label>
+            <label for="acceptTerms">I accept the Terms &amp; Conditions</label>
         </div>
-        <button onclick="doRegister()">Register</button>
-        <div class="link">Already have an account? <a href="/login">Login</a></div>
+
+        <button class="btn" onclick="doRegister()">Register</button>
+
+        <div class="link">
+            Already have an account? <a href="/login">Login</a>
+        </div>
     </div>
+
     <script>
         async function doRegister() {
             const username = document.getElementById('username').value;
@@ -57,6 +218,9 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             const acceptTerms = document.getElementById('acceptTerms').checked;
             const errorEl = document.getElementById('error');
+
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
 
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -75,4 +239,5 @@
         }
     </script>
 </body>
+
 </html>
