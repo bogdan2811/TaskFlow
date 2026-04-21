@@ -101,6 +101,11 @@ def health():
     return {'status': 'ok'}
 
 
+@router.get('/me')
+def get_me(current_user: User = Depends(_get_current_user)):
+    return {'user': current_user.to_dict()}
+
+
 @router.get('/users')
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
