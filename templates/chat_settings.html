@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Settings - TaskFlow</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #111827;
+            --border: rgba(148, 163, 184, 0.18);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #818cf8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 20%), radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.12), transparent 18%), linear-gradient(180deg, #020617 0%, #0b1122 100%);
+        }
+
+        .page {
+            padding: 24px;
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 22px 28px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            margin-bottom: 22px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.7rem;
+        }
+
+        .panel {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .card {
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            padding: 18px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+        }
+
+        .card p,
+        .card span {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .participant-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .participant {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.4));
+            color: white;
+            font-weight: 700;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 999px;
+            color: white;
+            padding: 12px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <header>
+            <div class="brand">
+                <div class="chip">TaskFlow</div>
+                <div>
+                    <h1>Chat settings</h1>
+                    <small>Manage the selected chat and participants.</small>
+                </div>
+            </div>
+            <a class="btn" href="/dashboard">Dashboard</a>
+        </header>
+
+        <section class="panel">
+            <div id="chat-info" class="card">
+                <h3 id="chat-name">Loading...</h3>
+                <span id="chat-meta">Please wait while chat data loads.</span>
+            </div>
+
+            <div id="participant-section" class="card">
+                <h3>Participants</h3>
+                <div id="participant-list" class="participant-list"></div>
+            </div>
+
+            <div class="card">
+                <h3>Actions</h3>
+                <p>Use the dashboard chat menu for chat-specific controls like mute, delete, and settings. This page
+                    shows chat members and metadata.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const chatToken = localStorage.getItem('token');
+        if (!chatToken) window.location.href = '/login';
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + chatToken,
+        };
+
+        function getChatIdFromPath() {
+            const parts = window.location.pathname.split('/');
+            return Number(parts[parts.length - 1]) || null;
+        }
+
+        async function loadChatSettings() {
+            const chatId = getChatIdFromPath();
+            if (!chatId) {
+                document.getElementById('chat-name').textContent = 'Invalid chat';
+                document.getElementById('chat-meta').textContent = 'Please go back to the dashboard and select a valid chat.';
+                return;
+            }
+            const [chatsRes, participantsRes] = await Promise.all([
+                fetch('/api/chats', { headers }),
+                fetch(`/api/chats/${chatId}/participants`, { headers }),
+            ]);
+            if (!chatsRes.ok || !participantsRes.ok) {
+                document.getElementById('chat-name').textContent = 'Unable to load chat';
+                document.getElementById('chat-meta').textContent = 'Check your permissions or return to the dashboard.';
+                return;
+            }
+            const chatsData = await chatsRes.json();
+            const participantsData = await participantsRes.json();
+            const chat = (chatsData.chats || []).find((c) => c.id === chatId);
+            if (!chat) {
+                document.getElementById('chat-name').textContent = 'Chat not found';
+                document.getElementById('chat-meta').textContent = 'Open the chat in the dashboard first.';
+                return;
+            }
+            document.getElementById('chat-name').textContent = chat.name;
+            document.getElementById('chat-meta').textContent = `Created ${new Date(chat.createdAt).toLocaleString()}`;
+            const list = document.getElementById('participant-list');
+            list.innerHTML = '';
+            if (!participantsData.participants?.length) {
+                list.innerHTML = '<div class="alert">No participants found for this chat.</div>';
+                return;
+            }
+            participantsData.participants.forEach((user) => {
+                const item = document.createElement('div');
+                item.className = 'participant';
+                item.innerHTML = `
+                    <div class="avatar">${user.username.slice(0, 2).toUpperCase()}</div>
+                    <div>
+                        <strong>${user.username}</strong><br>
+                        <span>${user.email || ''}</span>
+                    </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        loadChatSettings();
+    </script>
+</body>
+
+</html>

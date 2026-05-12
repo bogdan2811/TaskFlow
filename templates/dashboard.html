@@ -1,59 +1,1760 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - TaskFlow</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; min-height: 100vh; }
-        nav { background: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; }
-        nav h1 { font-size: 1.4rem; color: #4f46e5; }
-        nav .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.95rem; color: #555; }
-        .btn-logout { padding: 0.4rem 1rem; background: white; color: #4f46e5; border: 2px solid #4f46e5; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-        .btn-logout:hover { background: #f0f2f5; }
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        .welcome { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .welcome h2 { color: #333; margin-bottom: 0.5rem; }
-        .welcome p { color: #777; }
+        :root {
+            --bg: #050816;
+            --surface: rgba(15, 23, 42, 0.78);
+            --surface-strong: rgba(17, 24, 39, 0.95);
+            --surface-soft: rgba(30, 41, 59, 0.72);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-2: #06b6d4;
+            --accent-3: #ec4899;
+            --border: rgba(148, 163, 184, 0.18);
+            --success: #22c55e;
+            --danger: #fb7185;
+            --warning: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.20), transparent 28%),
+                radial-gradient(circle at 90% 15%, rgba(124, 58, 237, 0.25), transparent 26%),
+                radial-gradient(circle at 70% 90%, rgba(236, 72, 153, 0.16), transparent 28%),
+                linear-gradient(135deg, #020617 0%, #08111f 42%, #130724 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .page {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100%;
+            gap: 18px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        header {
+            position: relative;
+            z-index: 12;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.62));
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 28px;
+            backdrop-filter: blur(18px);
+            box-shadow:
+                0 24px 70px rgba(0, 0, 0, 0.35),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+                0 0 40px rgba(124, 58, 237, 0.10);
+        }
+
+        header .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        header .brand h1 {
+            font-size: 1.65rem;
+            color: #f8fafc;
+            margin: 0;
+            letter-spacing: -0.04em;
+        }
+
+        header small {
+            color: rgba(226, 232, 240, 0.62);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 11px 16px;
+            border-radius: 999px;
+            color: white;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(124, 58, 237, 0.42), rgba(236, 72, 153, 0.25));
+            box-shadow:
+                0 0 22px rgba(6, 182, 212, 0.20),
+                0 0 32px rgba(124, 58, 237, 0.18);
+        }
+
+        .top-right {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .profile-btn,
+        .chat-menu-button,
+        .btn,
+        button.small,
+        .toggle-panel,
+        .dropdown-item,
+        .profile-menu-item,
+        .task-source-btn,
+        .message-menu-button {
+            transition: 0.18s ease;
+        }
+
+        .profile-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+        }
+
+        .profile-btn:hover {
+            background: rgba(255, 255, 255, 0.11);
+            transform: translateY(-1px);
+        }
+
+        .profile-avatar,
+        .chat-avatar,
+        .message-group-avatar,
+        .participant-avatar {
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: 800;
+            background: linear-gradient(135deg, #06b6d4, #7c3aed, #ec4899);
+            box-shadow: 0 0 18px rgba(124, 58, 237, 0.28);
+        }
+
+        .profile-avatar {
+            width: 36px;
+            height: 36px;
+        }
+
+        .profile-name {
+            color: #f8fafc;
+            font-size: 0.95rem;
+        }
+
+        .profile-arrow {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .profile-menu,
+        .chat-dropdown,
+        .message-menu-dropdown {
+            background: rgba(8, 13, 28, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38), 0 0 35px rgba(124, 58, 237, 0.10);
+            backdrop-filter: blur(18px);
+            z-index: 2000;
+        }
+
+        .profile-menu {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 210px;
+            border-radius: 18px;
+            display: none;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+
+        .profile-menu.open {
+            display: flex;
+        }
+
+        .profile-menu-item,
+        .dropdown-item {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-size: 0.95rem;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .profile-menu-item:hover,
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .profile-menu-item.red,
+        .dropdown-item.red {
+            color: #fb7185;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 300px minmax(520px, 1fr) 380px;
+            gap: 18px;
+            align-items: stretch;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.62));
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 28px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-height: 0;
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+            box-shadow:
+                0 26px 80px rgba(0, 0, 0, 0.28),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        }
+
+        .panel h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+
+        .panel small,
+        .footer-note {
+            color: rgba(226, 232, 240, 0.58);
+            font-size: 0.9rem;
+        }
+
+        .panel-header-row,
+        .task-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 14px;
+            color: white;
+            padding: 12px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #06b6d4, #7c3aed, #ec4899);
+            box-shadow: 0 0 28px rgba(124, 58, 237, 0.25);
+        }
+
+        .btn:hover,
+        button.small:hover,
+        .toggle-panel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 36px rgba(124, 58, 237, 0.34);
+        }
+
+        button.small {
+            padding: 9px 13px;
+            font-size: 0.9rem;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.18);
+            color: white;
+            border: 1px solid rgba(124, 58, 237, 0.30);
+            cursor: pointer;
+        }
+
+        .toggle-panel {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(6, 182, 212, 0.12);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .list {
+            display: grid;
+            gap: 11px;
+        }
+
+        .item {
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.045);
+            padding: 15px;
+            display: grid;
+            gap: 8px;
+            text-align: left;
+            color: var(--text);
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.015);
+        }
+
+        button.item {
+            cursor: pointer;
+        }
+
+        .item:hover {
+            border-color: rgba(6, 182, 212, 0.26);
+            background: rgba(255, 255, 255, 0.065);
+        }
+
+        .item.active {
+            border-color: rgba(6, 182, 212, 0.56);
+            background:
+                linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(124, 58, 237, 0.14));
+            box-shadow: 0 0 24px rgba(6, 182, 212, 0.08);
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar,
+        .message-group-avatar {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
+        .chat-title,
+        .item-title {
+            font-weight: 800;
+            color: #f8fafc;
+            margin: 0;
+        }
+
+        .item-meta {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(148, 163, 184, 0.08);
+            color: var(--text);
+        }
+
+        .alert.error {
+            border-color: rgba(248, 113, 113, 0.28);
+            background: rgba(248, 113, 113, 0.12);
+            color: #fecaca;
+        }
+
+        #message-section {
+            flex: 1;
+            min-height: 360px;
+            max-height: 520px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .message-feed {
+            display: grid;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .message-group {
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .message-group-content {
+            display: grid;
+            gap: 10px;
+        }
+
+        .from {
+            color: #67e8f9;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .message {
+            position: relative;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            overflow: visible;
+        }
+
+        .message:hover {
+            border-color: rgba(124, 58, 237, 0.38);
+            background: rgba(255, 255, 255, 0.065);
+        }
+
+        .message-body {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .message-text {
+            flex: 1;
+            color: #e2e8f0;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            padding: 13px 15px;
+            border-radius: 17px;
+            background: rgba(2, 6, 23, 0.58);
+        }
+
+        .message-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
+        .task-source-btn,
+        .message-menu-button {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        .task-source-btn:hover,
+        .message-menu-button:hover {
+            background: rgba(6, 182, 212, 0.16);
+        }
+
+        .message-menu {
+            position: relative;
+        }
+
+        .message-menu-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            min-width: 160px;
+            border-radius: 16px;
+            display: none;
+            flex-direction: column;
+            padding: 6px 0;
+            z-index: 20;
+        }
+
+        .message-menu-dropdown.open {
+            display: flex;
+        }
+
+        .message-menu-dropdown button {
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .message-menu-dropdown button:hover {
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .message-form {
+            display: none;
+            gap: 12px;
+        }
+
+        .message-form.open {
+            display: grid;
+        }
+
+        .message-form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .message-form textarea {
+            flex: 1;
+            min-height: 80px;
+            max-height: 120px;
+            resize: none;
+        }
+
+        .message-form button[type="submit"] {
+            min-width: 145px;
+            padding: 13px 16px;
+        }
+
+        form {
+            display: grid;
+            gap: 14px;
+        }
+
+        label {
+            display: block;
+            color: rgba(226, 232, 240, 0.68);
+            font-size: 0.92rem;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            background: rgba(255, 255, 255, 0.045);
+            border-radius: 15px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: rgba(6, 182, 212, 0.48);
+            box-shadow: 0 0 18px rgba(6, 182, 212, 0.13);
+        }
+
+        select option {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .participants-dropdown {
+            display: grid;
+            gap: 10px;
+            max-height: 220px;
+            overflow: auto;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .participant-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+        }
+
+        .participant-option:hover {
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .participant-option input {
+            margin: 0;
+            accent-color: #7c3aed;
+            width: 18px;
+            height: 18px;
+        }
+
+        .participant-avatar {
+            width: 34px;
+            height: 34px;
+        }
+
+        .participant-name {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .participant-name strong {
+            color: #f8fafc;
+            font-size: 0.95rem;
+        }
+
+        .participant-name span {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .status {
+            padding: 7px 11px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: capitalize;
+        }
+
+        .status.todo {
+            background: rgba(6, 182, 212, 0.12);
+            color: #67e8f9;
+        }
+
+        .status.in_progress {
+            background: rgba(236, 72, 153, 0.12);
+            color: #f9a8d4;
+        }
+
+        .status.blocked {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fde68a;
+        }
+
+        .status.done {
+            background: rgba(34, 197, 94, 0.12);
+            color: #86efac;
+        }
+
+        .chat-menu-container {
+            position: relative;
+        }
+
+        .chat-menu-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06);
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .chat-menu-button:hover {
+            background: rgba(255, 255, 255, 0.11);
+            transform: translateY(-1px);
+        }
+
+        .chat-menu-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: white;
+            margin: 2px 0;
+        }
+
+        .chat-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 250px;
+            border-radius: 18px;
+            display: none;
+            flex-direction: column;
+            padding: 10px 0;
+            z-index: 20;
+        }
+
+        .chat-dropdown.open {
+            display: flex;
+        }
+
+        .dropdown-section {
+            padding: 10px 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .dropdown-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-weight: 800;
+            color: #f8fafc;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-count {
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .dropdown-list {
+            display: grid;
+            gap: 8px;
+            max-height: 140px;
+            overflow: auto;
+        }
+
+        .dropdown-list-item {
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            margin: 6px 0;
+            background: rgba(148, 163, 184, 0.12);
+        }
+
+        .task-panel-content {
+            display: grid;
+            gap: 16px;
+        }
+
+        .task-panel-content.collapsed {
+            display: none;
+        }
+
+        #selected-message {
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.10) !important;
+            border-radius: 15px !important;
+            color: var(--muted);
+            min-height: 50px;
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .scroll,
+        .message-feed,
+        .dropdown-list,
+        .participants-dropdown {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+        }
+
+        .scroll::-webkit-scrollbar,
+        .message-feed::-webkit-scrollbar,
+        .dropdown-list::-webkit-scrollbar,
+        .participants-dropdown::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        .scroll::-webkit-scrollbar-track,
+        .message-feed::-webkit-scrollbar-track,
+        .dropdown-list::-webkit-scrollbar-track,
+        .participants-dropdown::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 999px;
+        }
+
+        .scroll::-webkit-scrollbar-thumb,
+        .message-feed::-webkit-scrollbar-thumb,
+        .dropdown-list::-webkit-scrollbar-thumb,
+        .participants-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
+
+        @media (max-width: 1180px) {
+
+            html,
+            body {
+                overflow: auto;
+            }
+
+            .page {
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+            }
+
+            .panel {
+                min-height: auto;
+                overflow: visible;
+            }
+
+            #message-section {
+                max-height: 520px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            header .brand {
+                align-items: flex-start;
+            }
+
+            .top-right {
+                justify-content: flex-end;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .message-form-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .message-form button[type="submit"] {
+                width: 100%;
+            }
+        }
     </style>
 </head>
+
 <body>
-    <nav>
-        <h1>TaskFlow</h1>
-        <div class="user-info">
-            <span id="nav-username"></span>
-            <button class="btn-logout" onclick="logout()">Logout</button>
-        </div>
-    </nav>
-    <div class="container">
-        <div class="welcome">
-            <h2>Welcome back, <span id="username">...</span>!</h2>
-            <p>You're logged in to your TaskFlow dashboard.</p>
+    <div class="page">
+        <header>
+            <div class="brand">
+                <div class="chip">TaskFlow</div>
+                <div>
+                    <h1>Team dashboard</h1>
+                    <small>Chat with teammates, manage tasks, and keep work moving.</small>
+                </div>
+            </div>
+            <div class="top-right">
+                <button class="profile-btn" type="button" onclick="toggleProfileMenu()" aria-expanded="false"
+                    aria-haspopup="true">
+                    <div class="profile-avatar" id="profile-avatar">A</div>
+                    <div class="profile-name" id="profile-name">...</div>
+                    <div class="profile-arrow">▾</div>
+                </button>
+                <div class="profile-menu" id="profile-menu">
+                    <button class="profile-menu-item" type="button" onclick="editProfile()">
+                        <span>Edit profile</span>
+                    </button>
+                    <button class="profile-menu-item" type="button" onclick="openSettings()">
+                        <span>Settings</span>
+                    </button>
+                    <button class="profile-menu-item red" type="button" onclick="logout()">
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="layout">
+            <section class="panel">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <h2>Chats</h2>
+                        <button class="btn small" onclick="toggleCreateChat()">New chat</button>
+                    </div>
+                    <p class="footer-note">Select a chat to see messages and tasks.</p>
+                </div>
+
+                <div id="chat-list" class="list scroll"></div>
+
+                <div id="create-chat-panel" style="display:none; margin-top:10px;">
+                    <div class="item">
+                        <h3 class="item-title">Create chat</h3>
+                        <form id="create-chat-form" onsubmit="event.preventDefault(); createChat();">
+                            <label for="new-chat-name">Chat name</label>
+                            <input type="text" id="new-chat-name" placeholder="Team planning" required>
+                            <label for="participant-search">Add participants</label>
+                            <input type="text" id="participant-search" class="input" placeholder="Search teammates..."
+                                oninput="filterParticipants()">
+                            <div id="new-chat-participants" class="participants-dropdown"></div>
+                            <button class="btn" type="submit">Create chat</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header-row">
+                    <div>
+                        <h2 id="chat-title">No chat selected</h2>
+                        <small id="chat-meta">Choose a chat from the left panel.</small>
+                    </div>
+                    <div class="chat-menu-container">
+                        <button class="chat-menu-button" id="chat-menu-btn" type="button" onclick="toggleChatMenu()"
+                            aria-expanded="false" aria-haspopup="true">
+                            <span class="chat-menu-dot"></span>
+                            <span class="chat-menu-dot"></span>
+                            <span class="chat-menu-dot"></span>
+                        </button>
+                        <div class="chat-dropdown" id="chat-menu">
+                            <div class="dropdown-section">
+                                <div class="dropdown-title">
+                                    Participants
+                                    <span class="dropdown-count" id="chat-participant-count">0</span>
+                                </div>
+                                <div id="chat-participant-list" class="dropdown-list">
+                                    <div class="dropdown-list-item">No participants yet.</div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" type="button" onclick="openChatSettings()">Chat
+                                settings</button>
+                            <button class="dropdown-item" type="button" onclick="toggleMute()">Mute
+                                notifications</button>
+                            <button class="dropdown-item red" type="button" onclick="deleteChat()">Delete chat</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="message-error" class="alert error" style="display:none;"></div>
+                <div id="message-section"
+                    style="flex:1; min-height:360px; max-height:520px; display:flex; flex-direction:column; overflow:hidden;">
+                    <div id="messages" class="message-feed"></div>
+                </div>
+
+                <form id="message-form" class="message-form" onsubmit="event.preventDefault(); sendMessage();">
+                    <label for="message-input">New message</label>
+                    <div class="message-form-row">
+                        <textarea id="message-input" placeholder="Type a message..." required
+                            onkeydown="handleMessageKeydown(event)"></textarea>
+                        <button class="btn" type="submit">Send message</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel scroll">
+                <div class="task-panel-header">
+                    <div>
+                        <h2>Tasks</h2>
+                        <p class="footer-note">Create tasks from messages and keep track of work for this chat.</p>
+                    </div>
+                    <button class="toggle-panel" id="toggle-task-panel-btn" type="button"
+                        onclick="toggleTaskPanel()">New task ▾</button>
+                </div>
+
+                <div id="task-status" class="alert" style="display:none;"></div>
+
+                <div id="task-panel-content" class="task-panel-content">
+                    <div id="task-summary" class="item" style="display:none;"></div>
+
+                    <div id="task-list" class="list"></div>
+
+                    <div class="item" style="margin-top:10px;">
+                        <h3 class="item-title">New Task</h3>
+                        <form id="task-form" onsubmit="event.preventDefault(); createTask();">
+                            <label>Source message</label>
+                            <div id="selected-message"
+                                style="padding:12px; border:1px solid var(--border); border-radius:14px; color:var(--muted); min-height:50px;">
+                                Pick a message and click "Use as task source".</div>
+                            <label for="task-title">Title</label>
+                            <input type="text" id="task-title" placeholder="Summarize the work" required>
+                            <label for="task-description">Description</label>
+                            <textarea id="task-description" placeholder="Details, context, or acceptance criteria"
+                                required></textarea>
+                            <label for="task-assignees">Assignees</label>
+                            <select id="task-assignees" multiple size="4" required></select>
+                            <div class="row">
+                                <div>
+                                    <label for="task-deadline">Deadline</label>
+                                    <input type="datetime-local" id="task-deadline" required>
+                                </div>
+                                <div>
+                                    <label for="task-priority">Priority</label>
+                                    <select id="task-priority">
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div>
+                                    <label for="task-status">Status</label>
+                                    <select id="task-status-input">
+                                        <option value="todo">To do</option>
+                                        <option value="in_progress">In progress</option>
+                                        <option value="blocked">Blocked</option>
+                                        <option value="done">Done</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="task-category">Category</label>
+                                    <input type="text" id="task-category" placeholder="e.g. Marketing">
+                                </div>
+                            </div>
+                            <button class="btn" type="submit">Create task</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
+
     <script>
         const token = localStorage.getItem('token');
+        let currentUser = null;
+        let chats = [];
+        let users = [];
+        let selectedChat = null;
+        let participants = [];
+        let messages = [];
+        let tasks = [];
+        let selectedMessage = null;
+        let ws = null;
+        let messageFormVisible = false;
+        let taskPanelOpen = false;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+        };
+
         if (!token) {
             window.location.href = '/login';
         } else {
-            fetch('/api/auth/me', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            }).then(async res => {
-                if (!res.ok) {
-                    localStorage.removeItem('token');
-                    window.location.href = '/login';
+            bootstrap();
+        }
+
+        async function bootstrap() {
+            try {
+                await loadCurrentUser();
+                await loadUsers();
+                await loadChats();
+                renderChatPlaceholder();
+                renderCreateChatParticipants();
+            } catch (error) {
+                logout();
+            }
+        }
+
+        async function loadCurrentUser() {
+            const res = await fetch('/api/auth/me', { headers });
+            if (!res.ok) throw new Error('Unauthorized');
+            const data = await res.json();
+            currentUser = data.user;
+            document.getElementById('profile-name').textContent = currentUser.username;
+            document.getElementById('profile-avatar').textContent = escapeHtml(getInitials(currentUser.username));
+        }
+
+        async function loadUsers() {
+            const res = await fetch('/api/auth/users', { headers });
+            if (!res.ok) return;
+            users = await res.json();
+            renderCreateChatParticipants();
+        }
+
+        async function loadChats() {
+            const res = await fetch('/api/chats', { headers });
+            if (!res.ok) return;
+            const data = await res.json();
+            chats = data.chats || [];
+            renderChatList();
+        }
+
+        async function selectChat(chatId) {
+            selectedChat = chats.find((c) => c.id === chatId) || null;
+            selectedMessage = null;
+            await Promise.all([loadChatParticipants(chatId), loadChatMessages(chatId), loadChatTasks(chatId)]);
+            renderChatSelection();
+            connectWebSocket(chatId);
+            renderMessageControls();
+            renderTaskPanel();
+        }
+
+        async function loadChatParticipants(chatId) {
+            const res = await fetch(`/api/chats/${chatId}/participants`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                participants = data.participants || [];
+                renderParticipants();
+            }
+        }
+
+        async function loadChatMessages(chatId) {
+            const res = await fetch(`/api/chats/${chatId}/messages`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                messages = data.messages || [];
+                renderMessages();
+                requestAnimationFrame(() => {
+                    scrollToChatPosition();
+                    markChatRead();
+                });
+            }
+        }
+
+        async function loadChatTasks(chatId) {
+            const res = await fetch(`/api/chats/${chatId}/tasks`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                tasks = data.tasks || [];
+                renderTasks();
+            }
+        }
+
+        function addMessageIfNew(message) {
+            if (!messages.find((item) => item.id === message.id)) {
+                messages.push(message);
+                renderMessages();
+            }
+        }
+
+        function addTaskIfNew(task) {
+            if (!tasks.find((item) => item.id === task.id)) {
+                tasks.push(task);
+                renderTasks();
+            }
+        }
+
+        function getChatLastSeenIds() {
+            try {
+                return JSON.parse(localStorage.getItem('chatLastSeenIds') || '{}');
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function getChatLastSeenId(chatId) {
+            const store = getChatLastSeenIds();
+            return store[chatId] || null;
+        }
+
+        function setChatLastSeenId(chatId, messageId) {
+            const store = getChatLastSeenIds();
+            store[chatId] = messageId;
+            localStorage.setItem('chatLastSeenIds', JSON.stringify(store));
+        }
+
+        function scrollToChatPosition() {
+            const container = document.getElementById('messages');
+            if (!container || !selectedChat) return;
+            const lastSeenId = getChatLastSeenId(selectedChat.id);
+            if (lastSeenId) {
+                const unseenElement = Array.from(container.children).find((item) => {
+                    const messageId = Number(item.dataset.messageId);
+                    return messageId && messageId > Number(lastSeenId);
+                });
+                if (unseenElement) {
+                    unseenElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     return;
                 }
-                const data = await res.json();
-                const name = data.user?.username || 'User';
-                document.getElementById('username').textContent = name;
-                document.getElementById('nav-username').textContent = name;
-            }).catch(() => {
-                localStorage.removeItem('token');
-                window.location.href = '/login';
+            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function markChatRead() {
+            if (!selectedChat || !messages.length) return;
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage) {
+                setChatLastSeenId(selectedChat.id, lastMessage.id);
+            }
+        }
+
+        function renderMessageControls() {
+            const form = document.getElementById('message-form');
+            if (!selectedChat) {
+                messageFormVisible = false;
+                form.classList.remove('open');
+                return;
+            }
+            messageFormVisible = true;
+            form.classList.add('open');
+            document.getElementById('message-input').focus();
+        }
+
+        function renderTaskPanel() {
+            const content = document.getElementById('task-panel-content');
+            const button = document.getElementById('toggle-task-panel-btn');
+            if (!taskPanelOpen) {
+                content.classList.add('collapsed');
+                button.textContent = 'New task ▸';
+            } else {
+                content.classList.remove('collapsed');
+                button.textContent = 'New task ▾';
+            }
+        }
+
+        function toggleMessageForm() {
+            // no-op: message input opens automatically when a chat is selected
+        }
+
+        function toggleChatMenu() {
+            if (!selectedChat) return;
+            const menu = document.getElementById('chat-menu');
+            const button = document.getElementById('chat-menu-btn');
+            if (!menu || !button) return;
+            const expanded = menu.classList.toggle('open');
+            button.setAttribute('aria-expanded', expanded);
+        }
+
+        function closeChatMenu() {
+            const menu = document.getElementById('chat-menu');
+            const button = document.getElementById('chat-menu-btn');
+            if (!menu) return;
+            menu.classList.remove('open');
+            if (button) button.setAttribute('aria-expanded', 'false');
+        }
+
+        function renderChatMenu() {
+            const countEl = document.getElementById('chat-participant-count');
+            const listEl = document.getElementById('chat-participant-list');
+            const button = document.getElementById('chat-menu-btn');
+            if (!countEl || !listEl || !button) return;
+            if (!selectedChat) {
+                button.style.display = 'none';
+                countEl.textContent = '0';
+                listEl.innerHTML = '<div class="dropdown-list-item">No chat selected.</div>';
+                closeChatMenu();
+                return;
+            }
+            button.style.display = 'inline-flex';
+            countEl.textContent = `${participants.length}`;
+            if (!participants.length) {
+                listEl.innerHTML = '<div class="dropdown-list-item">No participants yet.</div>';
+            } else {
+                listEl.innerHTML = participants
+                    .map((user) => `<div class="dropdown-list-item">${escapeHtml(user.username)}</div>`)
+                    .join('');
+            }
+        }
+
+        function openChatSettings() {
+            closeChatMenu();
+            if (!selectedChat) {
+                alert('Select a chat first to open its settings.');
+                return;
+            }
+            window.location.href = `/chat-settings/${selectedChat.id}`;
+        }
+
+        function toggleMute() {
+            closeChatMenu();
+            alert('Mute notifications not implemented yet.');
+        }
+
+        function deleteChat() {
+            closeChatMenu();
+            alert('Delete chat not implemented yet.');
+        }
+
+        function toggleTaskPanel() {
+            taskPanelOpen = !taskPanelOpen;
+            renderTaskPanel();
+        }
+
+        function toggleMessageMenu(event, messageId) {
+            event.stopPropagation();
+            closeMessageMenus();
+            const menu = document.getElementById(`message-menu-${messageId}`);
+            if (!menu) return;
+            menu.classList.toggle('open');
+        }
+
+        function closeMessageMenus() {
+            document.querySelectorAll('.message-menu-dropdown.open').forEach((menu) => menu.classList.remove('open'));
+        }
+
+        function editMessage(messageId) {
+            closeMessageMenus();
+            alert(`Edit message ${messageId} not implemented yet.`);
+        }
+
+        function deleteMessage(messageId) {
+            closeMessageMenus();
+            alert(`Delete message ${messageId} not implemented yet.`);
+        }
+
+        function pinMessage(messageId) {
+            closeMessageMenus();
+            alert(`Pin message ${messageId} not implemented yet.`);
+        }
+
+        function connectWebSocket(chatId) {
+            if (!chatId || !token) return;
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+            const url = `${scheme}://${location.host}/ws/${chatId}?token=${token}`;
+            ws = new WebSocket(url);
+
+            ws.addEventListener('message', (event) => {
+                const payload = JSON.parse(event.data);
+                if (payload.type === 'message_created') {
+                    addMessageIfNew(payload.message);
+                }
+                if (payload.type === 'task_created') {
+                    addTaskIfNew(payload.task);
+                }
+            });
+
+            ws.addEventListener('close', () => {
+                ws = null;
             });
         }
+
+        function renderChatList() {
+            const list = document.getElementById('chat-list');
+            list.innerHTML = '';
+
+            if (!chats.length) {
+                list.innerHTML = '<div class="alert">No chats yet. Create one to get started.</div>';
+                return;
+            }
+
+            chats.forEach((chat) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = `item${selectedChat?.id === chat.id ? ' active' : ''}`;
+                item.onclick = () => selectChat(chat.id);
+                item.innerHTML = `
+                    <div class="chat-item">
+                        <div class="chat-avatar">${escapeHtml(getInitials(chat.name))}</div>
+                        <div>
+                            <div class="chat-title">${escapeHtml(chat.name)}</div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        let participantSearchTerm = '';
+
+        function renderCreateChatParticipants() {
+            const container = document.getElementById('new-chat-participants');
+            if (!container) return;
+            container.innerHTML = '';
+            const filtered = users.filter((user) => {
+                if (user.id === currentUser.id) return false;
+                const term = participantSearchTerm.trim().toLowerCase();
+                return !term || user.username.toLowerCase().includes(term);
+            });
+            if (!filtered.length) {
+                container.innerHTML = '<div class="alert">No teammates match your search.</div>';
+                return;
+            }
+            filtered.forEach((user) => {
+                const item = document.createElement('label');
+                item.className = 'participant-option';
+                item.htmlFor = `participant-${user.id}`;
+                item.innerHTML = `
+                    <input type="checkbox" id="participant-${user.id}" value="${user.id}">
+                    <div class="participant-avatar">${escapeHtml(getInitials(user.username))}</div>
+                    <div class="participant-name">
+                        <strong>${escapeHtml(user.username)}</strong>
+                        <span>Tap to add</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function filterParticipants() {
+            participantSearchTerm = document.getElementById('participant-search').value || '';
+            renderCreateChatParticipants();
+        }
+
+        function getInitials(name) {
+            if (!name) return '';
+            const parts = name.split(/\s+/).filter(Boolean);
+            if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        function renderChatPlaceholder() {
+            document.getElementById('chat-title').textContent = 'No chat selected';
+            document.getElementById('chat-meta').textContent = 'Create a chat or pick one from the list.';
+            document.getElementById('messages').innerHTML = '<div class="alert">No chat selected. Pick a chat to view this space.</div>';
+            document.getElementById('task-list').innerHTML = '<div class="alert">Select a chat to view tasks.</div>';
+            document.getElementById('selected-message').textContent = 'Pick a message and click "Use as task source".';
+            messageFormVisible = false;
+            renderChatList();
+            renderMessageControls();
+            renderTaskPanel();
+            renderChatMenu();
+        }
+
+        function renderChatSelection() {
+            if (!selectedChat) {
+                renderChatPlaceholder();
+                return;
+            }
+            document.getElementById('chat-title').textContent = selectedChat.name;
+            document.getElementById('chat-meta').textContent = `Created ${new Date(selectedChat.createdAt).toLocaleDateString()}, ${new Date(selectedChat.createdAt).toLocaleTimeString()}`;
+            renderChatList();
+            renderParticipants();
+            renderMessages();
+            renderTasks();
+            updateSelectedMessageDisplay();
+            renderMessageControls();
+            renderTaskPanel();
+            renderChatMenu();
+            scrollToChatPosition();
+            markChatRead();
+        }
+
+        function renderParticipants() {
+            const assigneeSelect = document.getElementById('task-assignees');
+            assigneeSelect.innerHTML = '';
+            participants.forEach((user) => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.username}`;
+                assigneeSelect.appendChild(option);
+            });
+            renderChatMenu();
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages');
+            if (!selectedChat) {
+                container.innerHTML = '';
+                return;
+            }
+            if (!messages.length) {
+                container.innerHTML = '<div class="alert">No messages in this chat yet. Send the first message below.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            let currentSender = null;
+            let groupContent = null;
+
+            messages.forEach((message) => {
+                const author = getUserName(message.senderId);
+                const isNewGroup = message.senderId !== currentSender;
+                if (isNewGroup) {
+                    currentSender = message.senderId;
+                    const group = document.createElement('div');
+                    group.className = 'message-group';
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'message-group-avatar';
+                    avatar.textContent = escapeHtml(getInitials(author));
+
+                    groupContent = document.createElement('div');
+                    groupContent.className = 'message-group-content';
+
+                    const authorLabel = document.createElement('div');
+                    authorLabel.className = 'from';
+                    authorLabel.textContent = escapeHtml(author);
+                    authorLabel.style.marginBottom = '4px';
+
+                    groupContent.appendChild(authorLabel);
+                    group.appendChild(avatar);
+                    group.appendChild(groupContent);
+                    container.appendChild(group);
+                }
+
+                const item = document.createElement('div');
+                item.className = 'message';
+                item.dataset.messageId = message.id;
+                item.innerHTML = `
+                    <div class="message-body">
+                        <div class="message-text">${escapeHtml(message.content)}</div>
+                        <div class="message-actions">
+                            <button type="button" class="task-source-btn" onclick="selectMessage(${message.id})">Use</button>
+                            <div class="message-menu">
+                                <button type="button" class="message-menu-button" onclick="toggleMessageMenu(event, ${message.id})">⋯</button>
+                                <div class="message-menu-dropdown" id="message-menu-${message.id}">
+                                    <button type="button" onclick="editMessage(${message.id})">Edit</button>
+                                    <button type="button" onclick="deleteMessage(${message.id})">Delete</button>
+                                    <button type="button" onclick="pinMessage(${message.id})">Pin</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                groupContent.appendChild(item);
+            });
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            list.innerHTML = '';
+            if (!selectedChat) {
+                list.innerHTML = '<div class="alert">Select a chat to view tasks.</div>';
+                return;
+            }
+            if (!tasks.length) {
+                list.innerHTML = '<div class="alert">No tasks yet. Use a message to create the first task.</div>';
+                return;
+            }
+            tasks.forEach((task) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                const assigneesText = task.assigneeIds.length ? task.assigneeIds.map(getUserName).join(', ') : 'None';
+                item.innerHTML = `<div class="item-title">${escapeHtml(task.title)}</div>
+                    <div class="item-meta">${escapeHtml(task.description || '')}</div>
+                    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+                        <span class="status ${task.status}">${task.status.replace('_', ' ')}</span>
+                        <span>${new Date(task.dueDate).toLocaleDateString()}</span>
+                    </div>
+                    <div class="item-meta">Priority: ${escapeHtml(task.priority)} • Assignees: ${escapeHtml(assigneesText)}</div>`;
+                list.appendChild(item);
+            });
+        }
+
+        function selectMessage(messageId) {
+            selectedMessage = messages.find((m) => m.id === messageId) || null;
+            updateSelectedMessageDisplay();
+        }
+
+        function updateSelectedMessageDisplay() {
+            const selected = document.getElementById('selected-message');
+            if (!selectedMessage) {
+                selected.textContent = 'Pick a message and click "Use as task source".';
+                return;
+            }
+            selected.innerHTML = `<strong>${escapeHtml(getUserName(selectedMessage.senderId))}</strong>: ${escapeHtml(selectedMessage.content)}`;
+        }
+
+        async function createChat() {
+            const name = document.getElementById('new-chat-name').value.trim();
+            const participantCheckboxes = Array.from(document.querySelectorAll('#new-chat-participants input[type="checkbox"]'));
+            const participantIds = participantCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => Number(checkbox.value));
+            if (!name) return;
+            const res = await fetch('/api/chats', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ name, participant_ids: participantIds }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.detail?.error || 'Unable to create chat');
+                return;
+            }
+            document.getElementById('new-chat-name').value = '';
+            document.getElementById('participant-search').value = '';
+            participantSearchTerm = '';
+            renderCreateChatParticipants();
+            await loadChats();
+            if (data.chat?.id) selectChat(data.chat.id);
+            document.getElementById('create-chat-panel').style.display = 'none';
+        }
+
+        async function sendMessage() {
+            if (!selectedChat) return;
+            const content = document.getElementById('message-input').value.trim();
+            if (!content) return;
+            const res = await fetch(`/api/chats/${selectedChat.id}/messages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ content }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showMessageError(data.detail?.error || 'Could not send message');
+                return;
+            }
+            document.getElementById('message-input').value = '';
+            addMessageIfNew(data.message);
+            hideMessageError();
+        }
+
+        async function createTask() {
+            if (!selectedChat) {
+                showTaskStatus('Select a chat before creating a task.', true);
+                return;
+            }
+            if (!selectedMessage) {
+                showTaskStatus('Select a message first to use as the task source.', true);
+                return;
+            }
+            const title = document.getElementById('task-title').value.trim();
+            const description = document.getElementById('task-description').value.trim();
+            const assignees = Array.from(document.getElementById('task-assignees').selectedOptions).map((opt) => Number(opt.value));
+            const deadline = document.getElementById('task-deadline').value;
+            const priority = document.getElementById('task-priority').value;
+            const status = document.getElementById('task-status-input').value;
+            const category = document.getElementById('task-category').value.trim() || null;
+            if (!title || !description || !deadline || !assignees.length) {
+                showTaskStatus('Please complete all required task fields.', true);
+                return;
+            }
+            const body = {
+                chat_id: selectedChat.id,
+                source_message_id: selectedMessage.id,
+                title,
+                description,
+                assignee_ids: assignees,
+                deadline,
+                priority,
+                status,
+                category,
+            };
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showTaskStatus(data.detail?.error || 'Could not create task', true);
+                return;
+            }
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-description').value = '';
+            document.getElementById('task-deadline').value = '';
+            document.getElementById('task-category').value = '';
+            document.getElementById('task-assignees').selectedIndex = -1;
+            showTaskStatus('Task created successfully.', false);
+            await loadChatTasks(selectedChat.id);
+        }
+
+        function handleMessageKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function toggleCreateChat() {
+            const panel = document.getElementById('create-chat-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showTaskStatus(message, isError) {
+            const status = document.getElementById('task-status');
+            status.textContent = message;
+            status.className = `alert${isError ? ' error' : ''}`;
+            status.style.display = 'block';
+            if (!isError) {
+                setTimeout(() => { status.style.display = 'none'; }, 4000);
+            }
+        }
+
+        function showMessageError(message) {
+            const err = document.getElementById('message-error');
+            err.textContent = message;
+            err.style.display = 'block';
+        }
+
+        function hideMessageError() {
+            const err = document.getElementById('message-error');
+            err.style.display = 'none';
+            err.textContent = '';
+        }
+
+        function getUserName(userId) {
+            if (userId === currentUser.id) return currentUser.username;
+            const user = users.find((u) => u.id === userId) || participants.find((u) => u.id === userId);
+            return user?.username || 'Unknown';
+        }
+
+        function escapeHtml(value) {
+            if (typeof value !== 'string') return value;
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profile-menu');
+            const expanded = menu.classList.toggle('open');
+            document.querySelector('.profile-btn').setAttribute('aria-expanded', expanded);
+        }
+
+        function closeProfileMenu() {
+            document.getElementById('profile-menu').classList.remove('open');
+            document.querySelector('.profile-btn').setAttribute('aria-expanded', 'false');
+        }
+
+        function editProfile() {
+            closeProfileMenu();
+            window.location.href = '/profile';
+        }
+
+        function openSettings() {
+            closeProfileMenu();
+            window.location.href = '/settings';
+        }
+
+        document.addEventListener('click', (event) => {
+            const profileMenu = document.getElementById('profile-menu');
+            const profileButton = document.querySelector('.profile-btn');
+            const chatMenu = document.getElementById('chat-menu');
+            const chatButton = document.getElementById('chat-menu-btn');
+            const messageMenu = event.target.closest('.message-menu');
+            if (profileMenu && profileButton && (profileMenu.contains(event.target) || profileButton.contains(event.target))) {
+                return;
+            }
+            if (chatMenu && chatButton && (chatMenu.contains(event.target) || chatButton.contains(event.target))) {
+                return;
+            }
+            if (messageMenu) {
+                return;
+            }
+            closeProfileMenu();
+            closeChatMenu();
+            closeMessageMenus();
+        });
 
         function logout() {
             localStorage.removeItem('token');
@@ -61,4 +1762,5 @@
         }
     </script>
 </body>
+
 </html>

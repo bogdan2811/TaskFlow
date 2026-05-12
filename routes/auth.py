@@ -40,7 +40,7 @@ class LoginRequest(BaseModel):
 
 
 class EditAccountRequest(BaseModel):
-    currentPassword: str
+    currentPassword: Optional[str] = None
     username: Optional[str] = None
     email: Optional[str] = None
     newPassword: Optional[str] = None
@@ -184,11 +184,11 @@ def edit_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(_get_current_user),
 ):
-    if not body.currentPassword:
-        raise HTTPException(status_code=400, detail={'error': 'Missing fields'})
-
-    if not pwd_context.verify(body.currentPassword, current_user.password_hash):
-        raise HTTPException(status_code=401, detail={'field': 'currentPassword', 'error': 'Incorrect password'})
+    if body.newPassword or body.confirmNewPassword:
+        if not body.currentPassword:
+            raise HTTPException(status_code=400, detail={'field': 'currentPassword', 'error': 'Current password is required to change your password'})
+        if not pwd_context.verify(body.currentPassword, current_user.password_hash):
+            raise HTTPException(status_code=401, detail={'field': 'currentPassword', 'error': 'Incorrect password'})
 
     if body.username is not None:
         username_raw = body.username.strip()
