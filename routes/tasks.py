@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from extensions import get_db
@@ -20,7 +21,7 @@ router = APIRouter(prefix='/api', tags=['tasks'])
 
 class CreateTaskRequest(BaseModel):
     chat_id: int
-    source_message_id: int
+    source_message_id: Optional[int] = None
     title: str
     description: str
     assignee_ids: list[int]
@@ -32,6 +33,7 @@ class CreateTaskRequest(BaseModel):
 
 class UpdateTaskRequest(BaseModel):
     version: int
+    source_message_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
     assignee_ids: Optional[list[int]] = None
@@ -46,7 +48,7 @@ class UpdateTaskRequest(BaseModel):
 def _require_chat_participant(user_id: int, chat_id: int, db: Session) -> Chat:
     chat = db.query(Chat).filter_by(chat_id=chat_id).first()
     if not chat:
-        raise HTTPException(status_code=404, detail={'error': 'Task not found.'})
+        raise HTTPException(status_code=404, detail={'error': 'Chat not found'})
     if not db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=user_id).first():
         raise HTTPException(status_code=403, detail={'error': 'You do not have permission to modify this task.'})
     return chat
@@ -60,12 +62,45 @@ def _parse_deadline(value: str) -> datetime:
 
 
 def _validate_assignees(assignee_ids: list[int], chat_id: int, db: Session):
-    for uid in assignee_ids:
-        if not db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=uid).first():
-            raise HTTPException(
-                status_code=422,
-                detail={'field': 'assignees', 'error': 'Selected user is not part of this conversation'},
-            )
+    unique_ids = set(assignee_ids)
+    participant_ids = {
+        row.user_id
+        for row in db.query(ChatParticipant.user_id)
+        .filter(ChatParticipant.chat_id == chat_id, ChatParticipant.user_id.in_(unique_ids))
+        .all()
+    }
+    missing_ids = sorted(unique_ids - participant_ids)
+    if missing_ids:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                'field': 'assignees',
+                'error': 'Selected user is not part of this conversation',
+                'userIds': missing_ids,
+            },
+        )
+
+
+def _validate_source_message(source_message_id: Optional[int], chat_id: int, db: Session):
+    if source_message_id is None:
+        return
+    message = db.query(Message).filter_by(
+        message_id=source_message_id, chat_id=chat_id
+    ).first()
+    if not message:
+        raise HTTPException(status_code=404, detail={'error': 'Source message not found'})
+
+
+def _normalize_category(category: Optional[str]) -> Optional[str]:
+    if category is None:
+        return None
+    category = category.strip()
+    return category or None
+
+
+def _field_was_sent(body: BaseModel, field_name: str) -> bool:
+    field_set = getattr(body, 'model_fields_set', getattr(body, '__fields_set__', set()))
+    return field_name in field_set
 
 
 async def _broadcast(chat_id: int, event_type: str, task_data: dict):
@@ -82,11 +117,7 @@ async def create_task(
 ):
     _require_chat_participant(current_user.user_id, body.chat_id, db)
 
-    message = db.query(Message).filter_by(
-        message_id=body.source_message_id, chat_id=body.chat_id
-    ).first()
-    if not message:
-        raise HTTPException(status_code=404, detail={'error': 'Task not found.'})
+    _validate_source_message(body.source_message_id, body.chat_id, db)
 
     if not body.title or not body.title.strip():
         raise HTTPException(status_code=422, detail={'field': 'title', 'error': 'Task title is required'})
@@ -96,7 +127,8 @@ async def create_task(
 
     if not body.assignee_ids:
         raise HTTPException(status_code=422, detail={'field': 'assignees', 'error': 'At least one assignee is required'})
-    _validate_assignees(body.assignee_ids, body.chat_id, db)
+    assignee_ids = list(dict.fromkeys(body.assignee_ids))
+    _validate_assignees(assignee_ids, body.chat_id, db)
 
     due_date = _parse_deadline(body.deadline)
 
@@ -111,7 +143,7 @@ async def create_task(
         description=body.description.strip(),
         status=body.status,
         priority=body.priority,
-        category=body.category,
+        category=_normalize_category(body.category),
         creator_id=current_user.user_id,
         chat_id=body.chat_id,
         source_message_id=body.source_message_id,
@@ -121,7 +153,7 @@ async def create_task(
     db.add(task)
     db.flush()
 
-    for uid in body.assignee_ids:
+    for uid in assignee_ids:
         db.add(TaskAssignee(task_id=task.task_id, user_id=uid, assigned_by=current_user.user_id))
 
     db.commit()
@@ -144,12 +176,15 @@ async def update_task(
 
     _require_chat_participant(current_user.user_id, task.chat_id, db)
 
-    is_assignee = db.query(TaskAssignee).filter_by(task_id=task_id, user_id=current_user.user_id).first()
-    if task.creator_id != current_user.user_id and not is_assignee:
+    if task.creator_id != current_user.user_id:
         raise HTTPException(status_code=403, detail={'error': 'You do not have permission to modify this task.'})
 
     if body.version != task.version:
         raise HTTPException(status_code=409, detail={'error': 'Something went wrong. Please refresh.'})
+
+    if _field_was_sent(body, 'source_message_id'):
+        _validate_source_message(body.source_message_id, task.chat_id, db)
+        task.source_message_id = body.source_message_id
 
     if body.title is not None:
         if not body.title.strip():
@@ -175,18 +210,19 @@ async def update_task(
         task.status = body.status
 
     if body.category is not None:
-        task.category = body.category or None
+        task.category = _normalize_category(body.category)
 
     if body.assignee_ids is not None:
         if not body.assignee_ids:
             raise HTTPException(status_code=422, detail={'field': 'assignees', 'error': 'At least one assignee is required'})
-        _validate_assignees(body.assignee_ids, task.chat_id, db)
+        assignee_ids = list(dict.fromkeys(body.assignee_ids))
+        _validate_assignees(assignee_ids, task.chat_id, db)
         db.query(TaskAssignee).filter_by(task_id=task_id).delete()
-        for uid in body.assignee_ids:
+        for uid in assignee_ids:
             db.add(TaskAssignee(task_id=task_id, user_id=uid, assigned_by=current_user.user_id))
 
     task.version += 1
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(task)
@@ -208,14 +244,30 @@ def get_task(
     return {'task': task.to_dict()}
 
 
+@router.get('/chats/{chat_id}/task-categories')
+def get_chat_task_categories(
+    chat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    _require_chat_participant(current_user.user_id, chat_id, db)
+    rows = (
+        db.query(Task.category)
+        .filter(Task.chat_id == chat_id, Task.category.isnot(None), func.trim(Task.category) != '')
+        .distinct()
+        .order_by(Task.category)
+        .all()
+    )
+    return {'categories': [row.category for row in rows]}
+
+
 @router.get('/chats/{chat_id}/tasks')
 def get_chat_tasks(
     chat_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(_get_current_user),
 ):
-    if not db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=current_user.user_id).first():
-        raise HTTPException(status_code=403, detail={'error': 'You do not have permission to perform this action'})
+    _require_chat_participant(current_user.user_id, chat_id, db)
     tasks = db.query(Task).filter_by(chat_id=chat_id).order_by(Task.created_at).all()
     return {'tasks': [t.to_dict() for t in tasks]}
 
@@ -227,5 +279,7 @@ def list_all_tasks(
 ):
     participant_rows = db.query(ChatParticipant).filter_by(user_id=current_user.user_id).all()
     chat_ids = [r.chat_id for r in participant_rows]
+    if not chat_ids:
+        return {'tasks': []}
     tasks = db.query(Task).filter(Task.chat_id.in_(chat_ids)).order_by(Task.created_at).all()
     return {'tasks': [t.to_dict() for t in tasks]}

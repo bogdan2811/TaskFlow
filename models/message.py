@@ -25,4 +25,5 @@ class Message(Base):
             'senderId': self.sender_id,
             'content': self.content,
             'sentAt': self.sent_at.isoformat(),
+            'updatedAt': self.updated_at.isoformat(),
         }

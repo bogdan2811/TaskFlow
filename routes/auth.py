@@ -1,6 +1,6 @@
 import re
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,7 +19,6 @@ router = APIRouter(prefix='/api/auth', tags=['auth'])
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
-JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'jwt-change-me-in-production')
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRE_MINUTES = 60
 
@@ -50,14 +49,27 @@ class EditAccountRequest(BaseModel):
 security = HTTPBearer()
 
 
+def _jwt_secret() -> str:
+    secret = os.environ.get('JWT_SECRET_KEY')
+    if not secret:
+        raise RuntimeError('JWT_SECRET_KEY environment variable is required')
+    return secret
+
+
+def _decode_token_subject(token: str) -> int:
+    payload = jwt.decode(token, _jwt_secret(), algorithms=[JWT_ALGORITHM])
+    return int(payload['sub'])
+
+
 def _get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
     try:
-        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = int(payload['sub'])
-    except (JWTError, KeyError):
+        user_id = _decode_token_subject(credentials.credentials)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail={'error': str(exc)})
+    except (JWTError, KeyError, ValueError):
         raise HTTPException(status_code=401, detail={'error': 'Invalid or expired token'})
 
     user = db.query(User).filter_by(user_id=user_id).first()
@@ -107,7 +119,7 @@ def get_me(current_user: User = Depends(_get_current_user)):
 
 
 @router.get('/users')
-def get_users(db: Session = Depends(get_db)):
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(_get_current_user)):
     users = db.query(User).all()
     return [u.to_dict() for u in users]
 
@@ -169,11 +181,14 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     if not user or not pwd_context.verify(password, user.password_hash):
         raise HTTPException(status_code=401, detail={'error': 'Invalid email or password'})
 
-    token = jwt.encode(
-        {'sub': str(user.user_id), 'exp': __import__('datetime').datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MINUTES)},
-        JWT_SECRET,
-        algorithm=JWT_ALGORITHM,
-    )
+    try:
+        token = jwt.encode(
+            {'sub': str(user.user_id), 'exp': datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)},
+            _jwt_secret(),
+            algorithm=JWT_ALGORITHM,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail={'error': str(exc)})
 
     return {'message': 'Login successful', 'token': token, 'user': user.to_dict()}
 

@@ -1,64 +1,1703 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - TaskFlow</title>
+    <title>TaskFlow App</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; min-height: 100vh; }
-        nav { background: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; }
-        nav h1 { font-size: 1.4rem; color: #4f46e5; }
-        nav .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.95rem; color: #555; }
-        .btn-logout { padding: 0.4rem 1rem; background: white; color: #4f46e5; border: 2px solid #4f46e5; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-        .btn-logout:hover { background: #f0f2f5; }
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        .welcome { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .welcome h2 { color: #333; margin-bottom: 0.5rem; }
-        .welcome p { color: #777; }
+        :root {
+            --bg: #eef2f7;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --surface-strong: #e2e8f0;
+            --text: #172033;
+            --muted: #64748b;
+            --line: #d7dee8;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --teal: #0f766e;
+            --amber: #b45309;
+            --danger: #b91c1c;
+            --danger-soft: #fee2e2;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+        }
+
+        button:disabled,
+        input:disabled,
+        select:disabled,
+        textarea:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .topbar {
+            height: 64px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 900;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .btn {
+            min-height: 36px;
+            padding: 0 13px;
+            border-radius: 7px;
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .btn.secondary {
+            color: var(--text);
+            background: var(--surface-strong);
+        }
+
+        .btn.ghost {
+            color: var(--accent);
+            background: transparent;
+            border: 1px solid var(--line);
+        }
+
+        .btn.danger {
+            color: #ffffff;
+            background: var(--danger);
+        }
+
+        .btn.small {
+            min-height: 30px;
+            padding: 0 10px;
+            font-size: 0.82rem;
+        }
+
+        .auth-page {
+            min-height: calc(100vh - 64px);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .auth-panel {
+            width: min(960px, 100%);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .auth-side {
+            padding: 34px;
+            background: #102033;
+            color: #ffffff;
+        }
+
+        .auth-side h1 {
+            margin: 0 0 12px;
+            font-size: 2rem;
+            letter-spacing: 0;
+        }
+
+        .auth-side p {
+            margin: 0;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .auth-forms {
+            padding: 28px;
+            display: grid;
+            gap: 24px;
+        }
+
+        .form-block {
+            display: grid;
+            gap: 12px;
+        }
+
+        .form-block h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field label {
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .input,
+        .textarea,
+        .select {
+            width: 100%;
+            min-height: 38px;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            background: #ffffff;
+            color: var(--text);
+            padding: 9px 11px;
+            outline: none;
+        }
+
+        .textarea {
+            min-height: 76px;
+            resize: vertical;
+        }
+
+        .input:focus,
+        .textarea:focus,
+        .select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .app {
+            min-height: calc(100vh - 64px);
+            display: grid;
+            grid-template-columns: 280px minmax(360px, 1fr) 360px;
+            gap: 1px;
+            background: var(--line);
+        }
+
+        .panel {
+            min-width: 0;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            min-height: 60px;
+            padding: 14px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .panel-title {
+            min-width: 0;
+        }
+
+        .panel-title h2 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .panel-title span {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .panel-body {
+            min-height: 0;
+            flex: 1;
+            overflow: auto;
+            padding: 14px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 10px;
+        }
+
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .inline.wrap {
+            flex-wrap: wrap;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+
+        .chat-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .chat-item {
+            width: 100%;
+            text-align: left;
+            padding: 10px;
+            border-radius: 8px;
+            background: var(--surface-soft);
+            border: 1px solid transparent;
+        }
+
+        .chat-item.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .chat-name {
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-meta {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .messages {
+            min-height: 0;
+            flex: 1;
+            overflow: auto;
+            padding: 14px;
+            background: #f4f7fb;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: min(78%, 680px);
+            align-self: flex-start;
+            display: grid;
+            gap: 5px;
+        }
+
+        .message.mine {
+            align-self: flex-end;
+        }
+
+        .bubble {
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .message.mine .bubble {
+            color: #ffffff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .message.selected .bubble {
+            outline: 3px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.76rem;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .composer {
+            padding: 12px;
+            border-top: 1px solid var(--line);
+            background: var(--surface);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+
+        .status {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%);
+            z-index: 20;
+            max-width: min(560px, calc(100vw - 28px));
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #ffffff;
+            background: #172033;
+            box-shadow: var(--shadow);
+            font-size: 0.9rem;
+        }
+
+        .status.error {
+            background: var(--danger);
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 0.92rem;
+            padding: 16px;
+            border: 1px dashed var(--line);
+            border-radius: 8px;
+            background: var(--surface-soft);
+        }
+
+        .member-row,
+        .task-row,
+        .user-row {
+            padding: 9px;
+            border-radius: 8px;
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            display: grid;
+            gap: 5px;
+        }
+
+        .member-row .line,
+        .task-row .line,
+        .user-row .line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .name {
+            min-width: 0;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .pill {
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: var(--surface-strong);
+            color: var(--text);
+            font-size: 0.74rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .pill.live {
+            color: #ffffff;
+            background: var(--teal);
+        }
+
+        .pill.warn {
+            color: #ffffff;
+            background: var(--amber);
+        }
+
+        .checkbox-list {
+            max-height: 130px;
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            display: grid;
+            gap: 7px;
+            background: #ffffff;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 8px;
+            gap: 8px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .tab {
+            min-height: 34px;
+            border-radius: 7px;
+            color: var(--muted);
+            background: transparent;
+            font-weight: 800;
+        }
+
+        .tab.active {
+            color: var(--text);
+            background: var(--surface-strong);
+        }
+
+        @media (max-width: 1120px) {
+            .app {
+                grid-template-columns: 250px 1fr;
+            }
+
+            .details-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .topbar {
+                padding: 0 12px;
+            }
+
+            .auth-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-side {
+                padding: 24px;
+            }
+
+            .app {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+
+            .chats-panel {
+                max-height: 42vh;
+            }
+
+            .messages-panel {
+                min-height: calc(100vh - 64px);
+            }
+
+            .details-panel {
+                display: flex;
+                min-height: 70vh;
+            }
+
+            .message {
+                max-width: 92%;
+            }
+        }
     </style>
 </head>
+
 <body>
-    <nav>
-        <h1>TaskFlow</h1>
-        <div class="user-info">
-            <span id="nav-username"></span>
-            <button class="btn-logout" onclick="logout()">Logout</button>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">T</div>
+            <span>TaskFlow</span>
         </div>
-    </nav>
-    <div class="container">
-        <div class="welcome">
-            <h2>Welcome back, <span id="username">...</span>!</h2>
-            <p>You're logged in to your TaskFlow dashboard.</p>
+        <div class="top-actions">
+            <span id="currentUserLabel"></span>
+            <span id="socketLabel" class="pill hidden">Offline</span>
+            <button id="logoutBtn" class="btn ghost small hidden" type="button">Logout</button>
         </div>
-    </div>
+    </header>
+
+    <main id="authPage" class="auth-page hidden">
+        <section class="auth-panel">
+            <div class="auth-side">
+                <h1>TaskFlow</h1>
+            </div>
+            <div class="auth-forms">
+                <form id="loginForm" class="form-block">
+                    <h2>Sign in</h2>
+                    <div class="field">
+                        <label for="loginEmail">Email</label>
+                        <input id="loginEmail" class="input" type="email" autocomplete="email" required>
+                    </div>
+                    <div class="field">
+                        <label for="loginPassword">Password</label>
+                        <input id="loginPassword" class="input" type="password" autocomplete="current-password" required>
+                    </div>
+                    <button class="btn" type="submit">Sign in</button>
+                </form>
+
+                <form id="registerForm" class="form-block">
+                    <h2>Create account</h2>
+                    <div class="field">
+                        <label for="registerUsername">Username</label>
+                        <input id="registerUsername" class="input" type="text" autocomplete="username" required>
+                    </div>
+                    <div class="field">
+                        <label for="registerEmail">Email</label>
+                        <input id="registerEmail" class="input" type="email" autocomplete="email" required>
+                    </div>
+                    <div class="field">
+                        <label for="registerPassword">Password</label>
+                        <input id="registerPassword" class="input" type="password" autocomplete="new-password" required>
+                    </div>
+                    <div class="field">
+                        <label for="registerConfirm">Confirm password</label>
+                        <input id="registerConfirm" class="input" type="password" autocomplete="new-password" required>
+                    </div>
+                    <label class="check-row">
+                        <input id="registerTerms" type="checkbox">
+                        <span>Accept terms</span>
+                    </label>
+                    <button class="btn secondary" type="submit">Register</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <main id="appPage" class="app hidden">
+        <section class="panel chats-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h2>Chats</h2>
+                    <span id="chatCountLabel"></span>
+                </div>
+                <button id="refreshBtn" class="btn ghost small" type="button">Refresh</button>
+            </div>
+            <div class="panel-body stack">
+                <form id="createChatForm" class="stack">
+                    <div class="field">
+                        <label for="newChatName">New chat</label>
+                        <input id="newChatName" class="input" type="text" placeholder="Project chat">
+                    </div>
+                    <div class="field">
+                        <label>Members</label>
+                        <div id="createMembersList" class="checkbox-list"></div>
+                    </div>
+                    <button class="btn" type="submit">Create chat</button>
+                </form>
+                <div id="chatList" class="chat-list"></div>
+            </div>
+        </section>
+
+        <section class="panel messages-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h2 id="activeChatName">No chat selected</h2>
+                    <span id="activeChatMeta"></span>
+                </div>
+                <div class="inline">
+                    <button id="leaveChatBtn" class="btn ghost small" type="button" disabled>Leave</button>
+                </div>
+            </div>
+            <div id="messages" class="messages">
+                <div class="empty">No chat selected</div>
+            </div>
+            <form id="messageForm" class="composer">
+                <input id="messageInput" class="input" type="text" placeholder="Message" disabled>
+                <button id="sendMessageBtn" class="btn" type="submit" disabled>Send</button>
+            </form>
+        </section>
+
+        <section class="panel details-panel">
+            <div class="tabs">
+                <button id="membersTab" class="tab active" type="button">Members</button>
+                <button id="tasksTab" class="tab" type="button">Tasks</button>
+            </div>
+
+            <div id="membersPane" class="panel-body stack">
+                <form id="renameChatForm" class="stack">
+                    <div class="field">
+                        <label for="renameChatName">Chat name</label>
+                        <div class="split">
+                            <input id="renameChatName" class="input" type="text" disabled>
+                            <button id="renameChatBtn" class="btn secondary" type="submit" disabled>Save</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="stack">
+                    <div class="inline wrap">
+                        <button id="deleteChatBtn" class="btn danger small" type="button" disabled>Delete chat</button>
+                    </div>
+                    <div id="participantsList" class="stack"></div>
+                </div>
+
+                <form id="addMemberForm" class="stack">
+                    <div class="field">
+                        <label for="addMemberSelect">Add member</label>
+                        <div class="split">
+                            <select id="addMemberSelect" class="select" disabled></select>
+                            <button id="addMemberBtn" class="btn secondary" type="submit" disabled>Add</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="tasksPane" class="panel-body stack hidden">
+                <form id="taskForm" class="stack">
+                    <div class="inline wrap">
+                        <span id="taskFormMode" class="pill">New task</span>
+                        <button id="newTaskBtn" class="btn ghost small" type="button" disabled>New task</button>
+                    </div>
+                    <div class="field">
+                        <label>Source message</label>
+                        <div class="split">
+                            <div id="selectedMessageLabel" class="empty">Standalone task</div>
+                            <button id="clearTaskSourceBtn" class="btn ghost small" type="button" disabled>Clear</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="taskTitle">Title</label>
+                        <input id="taskTitle" class="input" type="text" disabled>
+                    </div>
+                    <div class="field">
+                        <label for="taskDescription">Description</label>
+                        <textarea id="taskDescription" class="textarea" disabled></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="taskDeadline">Deadline</label>
+                        <input id="taskDeadline" class="input" type="datetime-local" disabled>
+                    </div>
+                    <div class="inline">
+                        <div class="field" style="flex: 1;">
+                            <label for="taskPriority">Priority</label>
+                            <select id="taskPriority" class="select" disabled>
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="field" style="flex: 1;">
+                            <label for="taskStatus">Status</label>
+                            <select id="taskStatus" class="select" disabled>
+                                <option value="todo" selected>Todo</option>
+                                <option value="in_progress">In progress</option>
+                                <option value="blocked">Blocked</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="taskCategorySelect">Category</label>
+                        <select id="taskCategorySelect" class="select" disabled></select>
+                    </div>
+                    <div id="taskNewCategoryField" class="field hidden">
+                        <label for="taskNewCategory">New category</label>
+                        <input id="taskNewCategory" class="input" type="text" disabled>
+                    </div>
+                    <div class="field">
+                        <label>Assignees</label>
+                        <div id="taskAssigneesList" class="checkbox-list"></div>
+                    </div>
+                    <button id="createTaskBtn" class="btn" type="submit" disabled>Create task</button>
+                </form>
+                <div id="tasksList" class="stack"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="status" class="status hidden"></div>
+
     <script>
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login';
-        } else {
-            fetch('/api/auth/me', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            }).then(async res => {
-                if (!res.ok) {
-                    localStorage.removeItem('token');
-                    window.location.href = '/login';
-                    return;
-                }
-                const data = await res.json();
-                const name = data.user?.username || 'User';
-                document.getElementById('username').textContent = name;
-                document.getElementById('nav-username').textContent = name;
-            }).catch(() => {
-                localStorage.removeItem('token');
-                window.location.href = '/login';
+        const state = {
+            token: localStorage.getItem('token'),
+            user: null,
+            users: [],
+            chats: [],
+            selectedChat: null,
+            participants: [],
+            messages: [],
+            selectedMessage: null,
+            tasks: [],
+            categories: [],
+            editingTask: null,
+            ws: null,
+            socketReady: false,
+            activePane: 'members'
+        };
+
+        const el = {
+            authPage: document.getElementById('authPage'),
+            appPage: document.getElementById('appPage'),
+            currentUserLabel: document.getElementById('currentUserLabel'),
+            socketLabel: document.getElementById('socketLabel'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            loginForm: document.getElementById('loginForm'),
+            registerForm: document.getElementById('registerForm'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            chatCountLabel: document.getElementById('chatCountLabel'),
+            createChatForm: document.getElementById('createChatForm'),
+            createMembersList: document.getElementById('createMembersList'),
+            newChatName: document.getElementById('newChatName'),
+            chatList: document.getElementById('chatList'),
+            activeChatName: document.getElementById('activeChatName'),
+            activeChatMeta: document.getElementById('activeChatMeta'),
+            leaveChatBtn: document.getElementById('leaveChatBtn'),
+            messages: document.getElementById('messages'),
+            messageForm: document.getElementById('messageForm'),
+            messageInput: document.getElementById('messageInput'),
+            sendMessageBtn: document.getElementById('sendMessageBtn'),
+            membersTab: document.getElementById('membersTab'),
+            tasksTab: document.getElementById('tasksTab'),
+            membersPane: document.getElementById('membersPane'),
+            tasksPane: document.getElementById('tasksPane'),
+            renameChatForm: document.getElementById('renameChatForm'),
+            renameChatName: document.getElementById('renameChatName'),
+            renameChatBtn: document.getElementById('renameChatBtn'),
+            deleteChatBtn: document.getElementById('deleteChatBtn'),
+            participantsList: document.getElementById('participantsList'),
+            addMemberForm: document.getElementById('addMemberForm'),
+            addMemberSelect: document.getElementById('addMemberSelect'),
+            addMemberBtn: document.getElementById('addMemberBtn'),
+            taskForm: document.getElementById('taskForm'),
+            taskFormMode: document.getElementById('taskFormMode'),
+            newTaskBtn: document.getElementById('newTaskBtn'),
+            selectedMessageLabel: document.getElementById('selectedMessageLabel'),
+            clearTaskSourceBtn: document.getElementById('clearTaskSourceBtn'),
+            taskTitle: document.getElementById('taskTitle'),
+            taskDescription: document.getElementById('taskDescription'),
+            taskDeadline: document.getElementById('taskDeadline'),
+            taskPriority: document.getElementById('taskPriority'),
+            taskStatus: document.getElementById('taskStatus'),
+            taskCategorySelect: document.getElementById('taskCategorySelect'),
+            taskNewCategoryField: document.getElementById('taskNewCategoryField'),
+            taskNewCategory: document.getElementById('taskNewCategory'),
+            taskAssigneesList: document.getElementById('taskAssigneesList'),
+            createTaskBtn: document.getElementById('createTaskBtn'),
+            tasksList: document.getElementById('tasksList'),
+            status: document.getElementById('status')
+        };
+
+        function showStatus(message, type = 'info') {
+            el.status.textContent = message;
+            el.status.className = `status ${type === 'error' ? 'error' : ''}`;
+            el.status.classList.remove('hidden');
+            clearTimeout(showStatus.timer);
+            showStatus.timer = setTimeout(() => el.status.classList.add('hidden'), 3200);
+        }
+
+        async function api(path, options = {}) {
+            const headers = { ...(options.headers || {}) };
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+            }
+            if (state.token) {
+                headers.Authorization = `Bearer ${state.token}`;
+            }
+
+            const response = await fetch(path, { ...options, headers });
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : {};
+            if (!response.ok) {
+                const detail = data.detail || {};
+                const message = detail.error || data.error || response.statusText || 'Request failed';
+                throw new Error(message);
+            }
+            return data;
+        }
+
+        function userName(userId) {
+            const user = state.users.find(item => item.id === userId);
+            return user ? user.username : `User ${userId}`;
+        }
+
+        function formatDate(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         }
 
-        function logout() {
-            localStorage.removeItem('token');
-            window.location.href = '/';
+        function setAuthMode(isAuthed) {
+            el.authPage.classList.toggle('hidden', isAuthed);
+            el.appPage.classList.toggle('hidden', !isAuthed);
+            el.logoutBtn.classList.toggle('hidden', !isAuthed);
+            el.socketLabel.classList.toggle('hidden', !isAuthed);
         }
+
+        async function boot() {
+            if (!state.token) {
+                setAuthMode(false);
+                return;
+            }
+
+            try {
+                const me = await api('/api/auth/me');
+                state.user = me.user;
+                setAuthMode(true);
+                el.currentUserLabel.textContent = state.user.username;
+                await reloadAll();
+            } catch (error) {
+                localStorage.removeItem('token');
+                state.token = null;
+                state.user = null;
+                setAuthMode(false);
+                showStatus(error.message, 'error');
+            }
+        }
+
+        async function reloadAll() {
+            const [usersData, chatsData] = await Promise.all([
+                api('/api/auth/users'),
+                api('/api/chats')
+            ]);
+            state.users = usersData;
+            state.chats = chatsData.chats || [];
+            renderUsers();
+            renderChats();
+            if (state.selectedChat) {
+                const updatedChat = state.chats.find(chat => chat.id === state.selectedChat.id);
+                if (updatedChat) {
+                    await selectChat(updatedChat.id, false);
+                } else {
+                    clearSelection();
+                }
+            }
+        }
+
+        function renderUsers() {
+            const otherUsers = state.users.filter(user => user.id !== state.user?.id);
+            el.createMembersList.innerHTML = otherUsers.length
+                ? otherUsers.map(user => `
+                    <label class="check-row">
+                        <input type="checkbox" value="${user.id}" data-create-member>
+                        <span>${escapeHtml(user.username)} <span class="muted">${escapeHtml(user.email)}</span></span>
+                    </label>
+                `).join('')
+                : '<div class="muted">No other users</div>';
+        }
+
+        function renderChats() {
+            el.chatCountLabel.textContent = `${state.chats.length} total`;
+            el.chatList.innerHTML = state.chats.length
+                ? state.chats.map(chat => {
+                    const active = state.selectedChat?.id === chat.id ? 'active' : '';
+                    const lastMessage = chat.lastMessage ? chat.lastMessage.content : 'No messages';
+                    return `
+                        <button class="chat-item ${active}" type="button" data-chat-id="${chat.id}">
+                            <div class="chat-name">${escapeHtml(chat.name)}</div>
+                            <div class="chat-meta">${chat.participantCount} members - ${escapeHtml(lastMessage)}</div>
+                        </button>
+                    `;
+                }).join('')
+                : '<div class="empty">No chats</div>';
+        }
+
+        async function selectChat(chatId, showToast = true) {
+            closeSocket();
+            const [chatData, messagesData, tasksData, categoriesData] = await Promise.all([
+                api(`/api/chats/${chatId}`),
+                api(`/api/chats/${chatId}/messages?limit=100`),
+                api(`/api/chats/${chatId}/tasks`),
+                api(`/api/chats/${chatId}/task-categories`)
+            ]);
+
+            state.selectedChat = chatData.chat;
+            state.participants = chatData.chat.participants || [];
+            state.messages = messagesData.messages || [];
+            state.tasks = tasksData.tasks || [];
+            state.categories = categoriesData.categories || [];
+            state.selectedMessage = null;
+            state.editingTask = null;
+
+            connectSocket(chatId);
+            renderChats();
+            renderActiveChat();
+            renderMessages();
+            renderMembers();
+            renderTaskForm();
+            renderTasks();
+
+            if (showToast) showStatus('Chat opened');
+        }
+
+        function clearSelection() {
+            closeSocket();
+            state.selectedChat = null;
+            state.participants = [];
+            state.messages = [];
+            state.tasks = [];
+            state.categories = [];
+            state.selectedMessage = null;
+            state.editingTask = null;
+            renderChats();
+            renderActiveChat();
+            renderMessages();
+            renderMembers();
+            renderTaskForm();
+            renderTasks();
+        }
+
+        function renderActiveChat() {
+            const hasChat = Boolean(state.selectedChat);
+            el.activeChatName.textContent = hasChat ? state.selectedChat.name : 'No chat selected';
+            el.activeChatMeta.textContent = hasChat
+                ? `${state.participants.length} members`
+                : '';
+            el.renameChatName.value = hasChat ? state.selectedChat.name : '';
+            el.messageInput.disabled = !hasChat;
+            el.sendMessageBtn.disabled = !hasChat;
+            el.leaveChatBtn.disabled = !hasChat;
+
+            const isOwner = hasChat && state.selectedChat.createdBy === state.user?.id;
+            el.renameChatName.disabled = !isOwner;
+            el.renameChatBtn.disabled = !isOwner;
+            el.deleteChatBtn.disabled = !isOwner;
+            el.addMemberSelect.disabled = !isOwner;
+            el.addMemberBtn.disabled = !isOwner;
+        }
+
+        function renderMessages() {
+            if (!state.selectedChat) {
+                el.messages.innerHTML = '<div class="empty">No chat selected</div>';
+                return;
+            }
+            if (!state.messages.length) {
+                el.messages.innerHTML = '<div class="empty">No messages</div>';
+                return;
+            }
+
+            const ownerId = state.selectedChat.createdBy;
+            el.messages.innerHTML = state.messages.map(message => {
+                const isMine = message.senderId === state.user.id;
+                const canDelete = isMine || ownerId === state.user.id;
+                const selected = state.selectedMessage?.id === message.id ? 'selected' : '';
+                return `
+                    <article class="message ${isMine ? 'mine' : ''} ${selected}" data-message-id="${message.id}">
+                        <div class="message-meta">
+                            <span>${escapeHtml(userName(message.senderId))} - ${formatDate(message.sentAt)}</span>
+                        </div>
+                        <div class="bubble">${escapeHtml(message.content)}</div>
+                        <div class="message-actions">
+                            <button class="btn ghost small" type="button" data-task-message="${message.id}">Task</button>
+                            ${isMine ? `<button class="btn ghost small" type="button" data-edit-message="${message.id}">Edit</button>` : ''}
+                            ${canDelete ? `<button class="btn ghost small" type="button" data-delete-message="${message.id}">Delete</button>` : ''}
+                        </div>
+                    </article>
+                `;
+            }).join('');
+            el.messages.scrollTop = el.messages.scrollHeight;
+        }
+
+        function renderMembers() {
+            if (!state.selectedChat) {
+                el.participantsList.innerHTML = '<div class="empty">No chat selected</div>';
+                el.addMemberSelect.innerHTML = '';
+                return;
+            }
+
+            const isOwner = state.selectedChat.createdBy === state.user.id;
+            const participantIds = new Set(state.participants.map(user => user.id));
+            const options = state.users
+                .filter(user => !participantIds.has(user.id))
+                .map(user => `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email)})</option>`);
+            el.addMemberSelect.innerHTML = options.length ? options.join('') : '<option value="">No users</option>';
+
+            el.participantsList.innerHTML = state.participants.map(user => {
+                const owner = user.id === state.selectedChat.createdBy;
+                const self = user.id === state.user.id;
+                return `
+                    <div class="member-row">
+                        <div class="line">
+                            <div class="name">${escapeHtml(user.username)}</div>
+                            <div class="inline">
+                                ${owner ? '<span class="pill live">Owner</span>' : ''}
+                                ${self ? '<span class="pill">You</span>' : ''}
+                                ${isOwner && !self ? `<button class="btn ghost small" type="button" data-remove-member="${user.id}">Remove</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="muted">${escapeHtml(user.email)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            renderTaskForm();
+        }
+
+        function renderTaskForm() {
+            const enabled = Boolean(state.selectedChat);
+            const hasSourceMessage = Boolean(state.selectedMessage);
+            const editing = Boolean(state.editingTask);
+            const controls = [
+                el.taskTitle,
+                el.taskDescription,
+                el.taskDeadline,
+                el.taskPriority,
+                el.taskStatus,
+                el.taskCategorySelect,
+                el.taskNewCategory,
+                el.createTaskBtn
+            ];
+            controls.forEach(control => control.disabled = !enabled);
+            renderCategoryControls(enabled);
+            el.taskFormMode.textContent = editing ? `Editing task #${state.editingTask.id}` : 'New task';
+            el.newTaskBtn.disabled = !state.selectedChat || !editing;
+            el.createTaskBtn.textContent = editing ? 'Save task' : 'Create task';
+
+            el.selectedMessageLabel.className = hasSourceMessage ? 'member-row' : 'empty';
+            el.selectedMessageLabel.textContent = hasSourceMessage
+                ? state.selectedMessage.content
+                : (state.selectedChat ? 'Standalone task' : 'No chat selected');
+            el.clearTaskSourceBtn.disabled = !hasSourceMessage;
+
+            if (!enabled && !state.selectedChat) {
+                el.taskAssigneesList.innerHTML = '<div class="muted">No chat selected</div>';
+                return;
+            }
+
+            el.taskAssigneesList.innerHTML = state.participants.length
+                ? state.participants.map(user => `
+                    <label class="check-row">
+                        <input type="checkbox" value="${user.id}" data-task-assignee ${enabled ? '' : 'disabled'}>
+                        <span>${escapeHtml(user.username)}</span>
+                    </label>
+                `).join('')
+                : '<div class="muted">No members</div>';
+        }
+
+        function renderCategoryControls(enabled) {
+            if (!state.selectedChat) {
+                el.taskCategorySelect.innerHTML = '<option value="">No chat selected</option>';
+                el.taskCategorySelect.disabled = true;
+                el.taskNewCategoryField.classList.add('hidden');
+                el.taskNewCategory.disabled = true;
+                el.taskNewCategory.value = '';
+                return;
+            }
+
+            const currentValue = el.taskCategorySelect.value;
+            const existingOptions = state.categories
+                .map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+                .join('');
+
+            el.taskCategorySelect.innerHTML = `
+                <option value="">No category</option>
+                ${existingOptions}
+                <option value="__new__">New category</option>
+            `;
+
+            if (currentValue && (currentValue === '__new__' || state.categories.includes(currentValue))) {
+                el.taskCategorySelect.value = currentValue;
+            } else if (!state.categories.length) {
+                el.taskCategorySelect.value = '__new__';
+            }
+
+            const isNewCategory = enabled && el.taskCategorySelect.value === '__new__';
+            el.taskNewCategoryField.classList.toggle('hidden', !isNewCategory);
+            el.taskNewCategory.disabled = !enabled || !isNewCategory;
+            el.taskCategorySelect.disabled = !enabled;
+        }
+
+        function selectedTaskCategory() {
+            if (el.taskCategorySelect.value === '__new__') {
+                return el.taskNewCategory.value.trim();
+            }
+            return el.taskCategorySelect.value;
+        }
+
+        function toDateTimeLocal(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return local.toISOString().slice(0, 16);
+        }
+
+        function resetTaskForm() {
+            el.taskForm.reset();
+            state.editingTask = null;
+            state.selectedMessage = null;
+            renderMessages();
+            renderTaskForm();
+        }
+
+        function startEditTask(task) {
+            state.editingTask = task;
+            const sourceMessage = task.sourceMessageId
+                ? state.messages.find(message => message.id === task.sourceMessageId)
+                : null;
+            state.selectedMessage = sourceMessage || (task.sourceMessageId
+                ? { id: task.sourceMessageId, content: `Message #${task.sourceMessageId}` }
+                : null);
+
+            if (task.category && !state.categories.includes(task.category)) {
+                state.categories.push(task.category);
+                state.categories.sort();
+            }
+
+            el.taskTitle.value = task.title || '';
+            el.taskDescription.value = task.description || '';
+            el.taskDeadline.value = toDateTimeLocal(task.dueDate);
+            el.taskPriority.value = task.priority || 'medium';
+            el.taskStatus.value = task.status || 'todo';
+            setPane('tasks');
+            renderMessages();
+            renderTaskForm();
+
+            el.taskCategorySelect.value = task.category || '';
+            renderCategoryControls(true);
+            Array.from(document.querySelectorAll('[data-task-assignee]')).forEach(input => {
+                input.checked = task.assigneeIds.includes(Number(input.value));
+            });
+        }
+
+        function renderTasks() {
+            if (!state.selectedChat) {
+                el.tasksList.innerHTML = '<div class="empty">No chat selected</div>';
+                return;
+            }
+            el.tasksList.innerHTML = state.tasks.length
+                ? state.tasks.map(task => {
+                    const canEdit = task.creatorId === state.user.id;
+                    return `
+                    <div class="task-row">
+                        <div class="line">
+                            <div class="name">${escapeHtml(task.title)}</div>
+                            <div class="inline">
+                                <span class="pill warn">${escapeHtml(task.priority)}</span>
+                                ${canEdit ? `<button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="muted">Category: ${task.category ? escapeHtml(task.category) : 'None'}</div>
+                        <div class="muted">${escapeHtml(task.status)} - ${task.dueDate ? formatDate(task.dueDate) : 'No deadline'}</div>
+                        <div class="muted">Assignees: ${task.assigneeIds.map(userName).map(escapeHtml).join(', ')}</div>
+                    </div>
+                `;
+                }).join('')
+                : '<div class="empty">No tasks</div>';
+        }
+
+        function setPane(name) {
+            state.activePane = name;
+            const showTasks = name === 'tasks';
+            el.membersPane.classList.toggle('hidden', showTasks);
+            el.tasksPane.classList.toggle('hidden', !showTasks);
+            el.membersTab.classList.toggle('active', !showTasks);
+            el.tasksTab.classList.toggle('active', showTasks);
+        }
+
+        function connectSocket(chatId) {
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const url = `${protocol}://${window.location.host}/ws/${chatId}?token=${encodeURIComponent(state.token)}`;
+            const ws = new WebSocket(url);
+            state.ws = ws;
+            state.socketReady = false;
+            updateSocketLabel();
+
+            ws.addEventListener('open', () => {
+                state.socketReady = true;
+                updateSocketLabel();
+            });
+
+            ws.addEventListener('message', event => {
+                const data = JSON.parse(event.data);
+                handleSocketEvent(data);
+            });
+
+            ws.addEventListener('close', () => {
+                if (state.ws === ws) {
+                    state.socketReady = false;
+                    updateSocketLabel();
+                }
+            });
+        }
+
+        function closeSocket() {
+            if (state.ws) {
+                state.ws.close();
+            }
+            state.ws = null;
+            state.socketReady = false;
+            updateSocketLabel();
+        }
+
+        function updateSocketLabel() {
+            el.socketLabel.textContent = state.socketReady ? 'Live' : 'Offline';
+            el.socketLabel.classList.toggle('live', state.socketReady);
+        }
+
+        async function handleSocketEvent(data) {
+            if (data.type === 'message_created') {
+                upsertMessage(data.message);
+                renderMessages();
+                refreshChatListQuietly();
+                return;
+            }
+            if (data.type === 'message_updated') {
+                upsertMessage(data.message);
+                if (state.selectedMessage?.id === data.message.id) {
+                    state.selectedMessage = data.message;
+                }
+                renderMessages();
+                renderTaskForm();
+                return;
+            }
+            if (data.type === 'message_deleted') {
+                state.messages = state.messages.filter(message => message.id !== data.message.id);
+                if (state.selectedMessage?.id === data.message.id) {
+                    state.selectedMessage = null;
+                }
+                renderMessages();
+                renderTaskForm();
+                refreshChatListQuietly();
+                return;
+            }
+            if (['participants_added', 'participant_left', 'participant_removed', 'chat_updated'].includes(data.type)) {
+                if (
+                    state.selectedChat
+                    && data.chat
+                    && data.chat.id === state.selectedChat.id
+                    && data.userId === state.user?.id
+                    && (data.type === 'participant_removed' || data.type === 'participant_left')
+                ) {
+                    state.chats = state.chats.filter(chat => chat.id !== data.chat.id);
+                    clearSelection();
+                    renderChats();
+                    showStatus(data.type === 'participant_removed' ? 'You were removed from the chat' : 'You left the chat');
+                    await refreshChatListQuietly();
+                    return;
+                }
+
+                if (data.chat && state.selectedChat?.id === data.chat.id) {
+                    await selectChat(data.chat.id, false);
+                }
+                await refreshChatListQuietly();
+                return;
+            }
+            if (data.type === 'chat_deleted') {
+                clearSelection();
+                await refreshChatListQuietly();
+                return;
+            }
+            if (data.type === 'task_created' || data.type === 'task_updated') {
+                if (state.selectedChat) {
+                    await refreshTasksAndCategories();
+                    renderTasks();
+                    renderTaskForm();
+                }
+            }
+        }
+
+        function upsertMessage(message) {
+            const index = state.messages.findIndex(item => item.id === message.id);
+            if (index >= 0) {
+                state.messages[index] = message;
+            } else {
+                state.messages.push(message);
+            }
+            state.messages.sort((a, b) => a.id - b.id);
+        }
+
+        async function refreshChatListQuietly() {
+            try {
+                const chatsData = await api('/api/chats');
+                state.chats = chatsData.chats || [];
+                renderChats();
+            } catch (error) {
+                console.warn(error);
+            }
+        }
+
+        async function refreshTasksAndCategories() {
+            if (!state.selectedChat) return;
+            const [tasksData, categoriesData] = await Promise.all([
+                api(`/api/chats/${state.selectedChat.id}/tasks`),
+                api(`/api/chats/${state.selectedChat.id}/task-categories`)
+            ]);
+            state.tasks = tasksData.tasks || [];
+            state.categories = categoriesData.categories || [];
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        el.loginForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            try {
+                const data = await api('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                state.token = data.token;
+                localStorage.setItem('token', state.token);
+                showStatus('Signed in');
+                await boot();
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.registerForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            try {
+                await api('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('registerUsername').value,
+                        email: document.getElementById('registerEmail').value,
+                        password: document.getElementById('registerPassword').value,
+                        confirmPassword: document.getElementById('registerConfirm').value,
+                        acceptTerms: document.getElementById('registerTerms').checked
+                    })
+                });
+                showStatus('Account created');
+                el.registerForm.reset();
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.logoutBtn.addEventListener('click', () => {
+            closeSocket();
+            localStorage.removeItem('token');
+            state.token = null;
+            state.user = null;
+            clearSelection();
+            setAuthMode(false);
+            el.currentUserLabel.textContent = '';
+            showStatus('Logged out');
+        });
+
+        el.refreshBtn.addEventListener('click', async () => {
+            try {
+                await reloadAll();
+                showStatus('Refreshed');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.createChatForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const ids = Array.from(document.querySelectorAll('[data-create-member]:checked')).map(input => Number(input.value));
+            try {
+                const data = await api('/api/chats', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: el.newChatName.value,
+                        participant_ids: ids
+                    })
+                });
+                el.createChatForm.reset();
+                await reloadAll();
+                await selectChat(data.chat.id);
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.chatList.addEventListener('click', async event => {
+            const button = event.target.closest('[data-chat-id]');
+            if (!button) return;
+            try {
+                await selectChat(Number(button.dataset.chatId));
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.messageForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!state.selectedChat) return;
+            const content = el.messageInput.value.trim();
+            if (!content) return;
+            el.messageInput.value = '';
+
+            try {
+                if (state.ws && state.socketReady) {
+                    state.ws.send(JSON.stringify({ type: 'send_message', content }));
+                } else {
+                    const data = await api(`/api/chats/${state.selectedChat.id}/messages`, {
+                        method: 'POST',
+                        body: JSON.stringify({ content })
+                    });
+                    upsertMessage(data.message);
+                    renderMessages();
+                }
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.messages.addEventListener('click', async event => {
+            const taskButton = event.target.closest('[data-task-message]');
+            const editButton = event.target.closest('[data-edit-message]');
+            const deleteButton = event.target.closest('[data-delete-message]');
+
+            if (taskButton) {
+                const message = state.messages.find(item => item.id === Number(taskButton.dataset.taskMessage));
+                state.selectedMessage = message || null;
+                if (!state.editingTask) {
+                    el.taskTitle.value = message ? message.content.slice(0, 70) : '';
+                    el.taskDescription.value = message ? message.content : '';
+                }
+                setPane('tasks');
+                renderMessages();
+                renderTaskForm();
+                return;
+            }
+
+            if (editButton) {
+                const message = state.messages.find(item => item.id === Number(editButton.dataset.editMessage));
+                if (!message) return;
+                const content = window.prompt('Edit message', message.content);
+                if (content === null) return;
+                try {
+                    const data = await api(`/api/chats/${state.selectedChat.id}/messages/${message.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ content })
+                    });
+                    upsertMessage(data.message);
+                    renderMessages();
+                } catch (error) {
+                    showStatus(error.message, 'error');
+                }
+                return;
+            }
+
+            if (deleteButton) {
+                const messageId = Number(deleteButton.dataset.deleteMessage);
+                if (!window.confirm('Delete this message?')) return;
+                try {
+                    await api(`/api/chats/${state.selectedChat.id}/messages/${messageId}`, { method: 'DELETE' });
+                    state.messages = state.messages.filter(message => message.id !== messageId);
+                    renderMessages();
+                } catch (error) {
+                    showStatus(error.message, 'error');
+                }
+            }
+        });
+
+        el.renameChatForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!state.selectedChat) return;
+            try {
+                const data = await api(`/api/chats/${state.selectedChat.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ name: el.renameChatName.value })
+                });
+                state.selectedChat = data.chat;
+                await reloadAll();
+                renderActiveChat();
+                showStatus('Chat renamed');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.deleteChatBtn.addEventListener('click', async () => {
+            if (!state.selectedChat || !window.confirm('Delete this chat?')) return;
+            try {
+                await api(`/api/chats/${state.selectedChat.id}`, { method: 'DELETE' });
+                clearSelection();
+                await reloadAll();
+                showStatus('Chat deleted');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.leaveChatBtn.addEventListener('click', async () => {
+            if (!state.selectedChat || !window.confirm('Leave this chat?')) return;
+            try {
+                await api(`/api/chats/${state.selectedChat.id}/participants/me`, { method: 'DELETE' });
+                clearSelection();
+                await reloadAll();
+                showStatus('Left chat');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.addMemberForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!state.selectedChat || !el.addMemberSelect.value) return;
+            try {
+                const data = await api(`/api/chats/${state.selectedChat.id}/participants`, {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: Number(el.addMemberSelect.value) })
+                });
+                state.selectedChat = data.chat;
+                state.participants = data.chat.participants || [];
+                renderMembers();
+                renderActiveChat();
+                await reloadAll();
+                showStatus('Member added');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.participantsList.addEventListener('click', async event => {
+            const button = event.target.closest('[data-remove-member]');
+            if (!button || !state.selectedChat) return;
+            const userId = Number(button.dataset.removeMember);
+            if (!window.confirm(`Remove ${userName(userId)}?`)) return;
+            try {
+                await api(`/api/chats/${state.selectedChat.id}/participants/${userId}`, { method: 'DELETE' });
+                await selectChat(state.selectedChat.id, false);
+                showStatus('Member removed');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.tasksList.addEventListener('click', event => {
+            const button = event.target.closest('[data-edit-task]');
+            if (!button) return;
+            const task = state.tasks.find(item => item.id === Number(button.dataset.editTask));
+            if (!task) return;
+            if (task.creatorId !== state.user.id) {
+                showStatus('Only the creator can edit this task', 'error');
+                return;
+            }
+            startEditTask(task);
+        });
+
+        el.taskForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!state.selectedChat) return;
+            const assigneeIds = Array.from(document.querySelectorAll('[data-task-assignee]:checked')).map(input => Number(input.value));
+            const payload = {
+                chat_id: state.selectedChat.id,
+                source_message_id: state.selectedMessage ? state.selectedMessage.id : null,
+                title: el.taskTitle.value,
+                description: el.taskDescription.value,
+                assignee_ids: assigneeIds,
+                deadline: el.taskDeadline.value,
+                priority: el.taskPriority.value,
+                category: selectedTaskCategory(),
+                status: el.taskStatus.value
+            };
+            try {
+                const wasEditing = Boolean(state.editingTask);
+                if (state.editingTask) {
+                    await api(`/api/tasks/${state.editingTask.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                            version: state.editingTask.version,
+                            source_message_id: payload.source_message_id,
+                            title: payload.title,
+                            description: payload.description,
+                            assignee_ids: payload.assignee_ids,
+                            deadline: payload.deadline,
+                            priority: payload.priority,
+                            category: payload.category,
+                            status: payload.status
+                        })
+                    });
+                } else {
+                    await api('/api/tasks', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                }
+                resetTaskForm();
+                await refreshTasksAndCategories();
+                renderTaskForm();
+                renderTasks();
+                showStatus(wasEditing ? 'Task updated' : 'Task created');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.membersTab.addEventListener('click', () => setPane('members'));
+        el.tasksTab.addEventListener('click', () => setPane('tasks'));
+        el.newTaskBtn.addEventListener('click', () => {
+            resetTaskForm();
+        });
+        el.clearTaskSourceBtn.addEventListener('click', () => {
+            state.selectedMessage = null;
+            renderMessages();
+            renderTaskForm();
+        });
+        el.taskCategorySelect.addEventListener('change', () => {
+            renderCategoryControls(Boolean(state.selectedChat));
+        });
+
+        boot();
     </script>
 </body>
+
 </html>
