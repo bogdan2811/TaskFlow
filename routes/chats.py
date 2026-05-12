@@ -1,0 +1,401 @@
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from extensions import get_db
+from models.chat import Chat, ChatParticipant
+from models.message import Message
+from models.user import User
+from routes.auth import _get_current_user
+from ws_manager import manager
+
+router = APIRouter(prefix='/api/chats', tags=['chats'])
+
+
+class CreateChatRequest(BaseModel):
+    name: str
+    participant_ids: list[int] = Field(default_factory=list)
+
+
+class UpdateChatRequest(BaseModel):
+    name: str
+
+
+class SendMessageRequest(BaseModel):
+    content: str
+
+
+class UpdateMessageRequest(BaseModel):
+    content: str
+
+
+class AddParticipantRequest(BaseModel):
+    user_id: Optional[int] = None
+    participant_ids: list[int] = Field(default_factory=list)
+
+
+def _require_participant(user_id: int, chat_id: int, db: Session) -> Chat:
+    chat = db.query(Chat).filter_by(chat_id=chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail={'error': 'Chat not found'})
+    if not db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=user_id).first():
+        raise HTTPException(status_code=403, detail={'error': 'You do not have permission to perform this action'})
+    return chat
+
+
+def _require_owner(user_id: int, chat: Chat):
+    if chat.created_by != user_id:
+        raise HTTPException(status_code=403, detail={'error': 'Only the chat owner can perform this action'})
+
+
+def _participant_ids(chat_id: int, db: Session) -> list[int]:
+    rows = db.query(ChatParticipant).filter_by(chat_id=chat_id).order_by(ChatParticipant.joined_at).all()
+    return [row.user_id for row in rows]
+
+
+def _users_by_id(user_ids: list[int], db: Session) -> list[User]:
+    if not user_ids:
+        return []
+    users = db.query(User).filter(User.user_id.in_(user_ids)).all()
+    return sorted(users, key=lambda user: user_ids.index(user.user_id))
+
+
+def _ensure_users_exist(user_ids: set[int], db: Session):
+    if not user_ids:
+        return
+    existing_ids = {
+        row.user_id
+        for row in db.query(User.user_id).filter(User.user_id.in_(user_ids)).all()
+    }
+    missing_ids = sorted(user_ids - existing_ids)
+    if missing_ids:
+        raise HTTPException(status_code=404, detail={'error': f'Users not found: {missing_ids}'})
+
+
+def _chat_payload(chat: Chat, db: Session, include_participants: bool = False) -> dict:
+    participant_ids = _participant_ids(chat.chat_id, db)
+    last_message = (
+        db.query(Message)
+        .filter_by(chat_id=chat.chat_id)
+        .order_by(Message.message_id.desc())
+        .first()
+    )
+
+    data = chat.to_dict()
+    data['participantIds'] = participant_ids
+    data['participantCount'] = len(participant_ids)
+    data['lastMessage'] = last_message.to_dict() if last_message else None
+
+    if include_participants:
+        data['participants'] = [user.to_dict() for user in _users_by_id(participant_ids, db)]
+
+    return data
+
+
+def _message_for_chat(chat_id: int, message_id: int, db: Session) -> Message:
+    message = db.query(Message).filter_by(chat_id=chat_id, message_id=message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail={'error': 'Message not found'})
+    return message
+
+
+def _create_message(chat_id: int, sender_id: int, content: str, db: Session) -> Message:
+    content = content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail={'field': 'content', 'error': 'Message cannot be empty'})
+
+    message = Message(chat_id=chat_id, sender_id=sender_id, content=content)
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return message
+
+
+async def _broadcast_chat(chat_id: int, event_type: str, payload: dict):
+    await manager.broadcast(chat_id, {'type': event_type, **payload})
+
+
+@router.get('')
+def list_chats(db: Session = Depends(get_db), current_user: User = Depends(_get_current_user)):
+    rows = db.query(ChatParticipant).filter_by(user_id=current_user.user_id).all()
+    chat_ids = [row.chat_id for row in rows]
+    if not chat_ids:
+        return {'chats': []}
+
+    chats = db.query(Chat).filter(Chat.chat_id.in_(chat_ids)).all()
+    payloads = [_chat_payload(chat, db) for chat in chats]
+    payloads.sort(
+        key=lambda chat_data: (
+            chat_data['lastMessage']['sentAt'] if chat_data['lastMessage'] else chat_data['createdAt']
+        ),
+        reverse=True,
+    )
+    return {'chats': payloads}
+
+
+@router.post('', status_code=201)
+def create_chat(
+    body: CreateChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail={'field': 'name', 'error': 'Chat name is required'})
+
+    participant_ids = set(body.participant_ids) | {current_user.user_id}
+    _ensure_users_exist(participant_ids, db)
+
+    chat = Chat(name=name, created_by=current_user.user_id)
+    db.add(chat)
+    db.flush()
+
+    for user_id in sorted(participant_ids):
+        db.add(ChatParticipant(chat_id=chat.chat_id, user_id=user_id))
+
+    db.commit()
+    db.refresh(chat)
+    return {'message': 'Chat created successfully', 'chat': _chat_payload(chat, db, include_participants=True)}
+
+
+@router.get('/{chat_id}')
+def get_chat(
+    chat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    return {'chat': _chat_payload(chat, db, include_participants=True)}
+
+
+@router.patch('/{chat_id}')
+async def update_chat(
+    chat_id: int,
+    body: UpdateChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    _require_owner(current_user.user_id, chat)
+
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail={'field': 'name', 'error': 'Chat name is required'})
+
+    chat.name = name
+    db.commit()
+    db.refresh(chat)
+
+    payload = _chat_payload(chat, db, include_participants=True)
+    await _broadcast_chat(chat_id, 'chat_updated', {'chat': payload})
+    return {'message': 'Chat updated successfully', 'chat': payload}
+
+
+@router.delete('/{chat_id}')
+async def delete_chat(
+    chat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    _require_owner(current_user.user_id, chat)
+
+    payload = _chat_payload(chat, db, include_participants=True)
+    db.delete(chat)
+    db.commit()
+
+    await _broadcast_chat(chat_id, 'chat_deleted', {'chat': payload})
+    await manager.disconnect_chat(chat_id, reason='Chat deleted')
+    return {'message': 'Chat deleted successfully'}
+
+
+@router.get('/{chat_id}/participants')
+def list_participants(
+    chat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    _require_participant(current_user.user_id, chat_id, db)
+    participant_ids = _participant_ids(chat_id, db)
+    users = _users_by_id(participant_ids, db)
+    return {'participants': [user.to_dict() for user in users]}
+
+
+@router.post('/{chat_id}/participants', status_code=201)
+async def add_participants(
+    chat_id: int,
+    body: AddParticipantRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    _require_owner(current_user.user_id, chat)
+
+    new_ids = set(body.participant_ids)
+    if body.user_id is not None:
+        new_ids.add(body.user_id)
+    if not new_ids:
+        raise HTTPException(status_code=422, detail={'field': 'participants', 'error': 'At least one user is required'})
+
+    _ensure_users_exist(new_ids, db)
+
+    existing_ids = set(_participant_ids(chat_id, db))
+    already_present = sorted(new_ids & existing_ids)
+    if already_present:
+        raise HTTPException(status_code=409, detail={'error': f'Users already in chat: {already_present}'})
+
+    for user_id in sorted(new_ids):
+        db.add(ChatParticipant(chat_id=chat_id, user_id=user_id))
+
+    db.commit()
+    db.refresh(chat)
+
+    payload = _chat_payload(chat, db, include_participants=True)
+    await _broadcast_chat(chat_id, 'participants_added', {'userIds': sorted(new_ids), 'chat': payload})
+    return {'message': 'Participants added', 'chat': payload}
+
+
+@router.delete('/{chat_id}/participants/me')
+async def leave_chat(
+    chat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    participant = db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=current_user.user_id).first()
+    remaining = [
+        row
+        for row in db.query(ChatParticipant)
+        .filter_by(chat_id=chat_id)
+        .order_by(ChatParticipant.joined_at, ChatParticipant.chat_participant_id)
+        .all()
+        if row.user_id != current_user.user_id
+    ]
+
+    if not remaining:
+        db.delete(chat)
+        db.commit()
+        await manager.disconnect_user(chat_id, current_user.user_id, reason='Left chat')
+        return {'message': 'Left chat and deleted empty chat'}
+
+    if chat.created_by == current_user.user_id:
+        chat.created_by = remaining[0].user_id
+
+    db.delete(participant)
+    db.commit()
+    db.refresh(chat)
+
+    payload = _chat_payload(chat, db, include_participants=True)
+    await _broadcast_chat(chat_id, 'participant_left', {'userId': current_user.user_id, 'chat': payload})
+    await manager.disconnect_user(chat_id, current_user.user_id, reason='Left chat')
+    return {'message': 'Left chat successfully'}
+
+
+@router.delete('/{chat_id}/participants/{user_id}')
+async def remove_participant(
+    chat_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+
+    if user_id == current_user.user_id:
+        raise HTTPException(status_code=400, detail={'error': 'Use the leave chat endpoint to remove yourself'})
+    _require_owner(current_user.user_id, chat)
+
+    participant = db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=user_id).first()
+    if not participant:
+        raise HTTPException(status_code=404, detail={'error': 'Participant not found'})
+
+    db.delete(participant)
+    db.commit()
+    db.refresh(chat)
+
+    payload = _chat_payload(chat, db, include_participants=True)
+    await _broadcast_chat(chat_id, 'participant_removed', {'userId': user_id, 'chat': payload})
+    await manager.disconnect_user(chat_id, user_id, reason='Removed from chat')
+    return {'message': 'Participant removed'}
+
+
+@router.get('/{chat_id}/messages')
+def list_messages(
+    chat_id: int,
+    before_id: Optional[int] = Query(None, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    _require_participant(current_user.user_id, chat_id, db)
+
+    query = db.query(Message).filter_by(chat_id=chat_id)
+    if before_id is not None:
+        query = query.filter(Message.message_id < before_id)
+
+    messages = query.order_by(Message.message_id.desc()).limit(limit).all()
+    messages.reverse()
+
+    return {'messages': [message.to_dict() for message in messages]}
+
+
+@router.post('/{chat_id}/messages', status_code=201)
+async def send_message(
+    chat_id: int,
+    body: SendMessageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    _require_participant(current_user.user_id, chat_id, db)
+    message = _create_message(chat_id, current_user.user_id, body.content, db)
+
+    await _broadcast_chat(chat_id, 'message_created', {'message': message.to_dict()})
+    return {'message': message.to_dict()}
+
+
+@router.patch('/{chat_id}/messages/{message_id}')
+async def update_message(
+    chat_id: int,
+    message_id: int,
+    body: UpdateMessageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    _require_participant(current_user.user_id, chat_id, db)
+    message = _message_for_chat(chat_id, message_id, db)
+    if message.sender_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail={'error': 'Only the sender can edit this message'})
+
+    content = body.content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail={'field': 'content', 'error': 'Message cannot be empty'})
+
+    message.content = content
+    message.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(message)
+
+    await _broadcast_chat(chat_id, 'message_updated', {'message': message.to_dict()})
+    return {'message': message.to_dict()}
+
+
+@router.delete('/{chat_id}/messages/{message_id}')
+async def delete_message(
+    chat_id: int,
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    chat = _require_participant(current_user.user_id, chat_id, db)
+    message = _message_for_chat(chat_id, message_id, db)
+    if message.sender_id != current_user.user_id and chat.created_by != current_user.user_id:
+        raise HTTPException(status_code=403, detail={'error': 'Only the sender or chat owner can delete this message'})
+
+    payload = message.to_dict()
+    db.delete(message)
+    db.commit()
+
+    await _broadcast_chat(chat_id, 'message_deleted', {'message': payload})
+    return {'message': 'Message deleted successfully'}
