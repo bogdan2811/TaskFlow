@@ -18,6 +18,7 @@ env/
 
 # Local databases
 *.db
+taskflow.db
 *.sqlite
 *.sqlite3
 

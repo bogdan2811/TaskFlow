@@ -86,10 +86,15 @@
             font-size: 1rem;
             cursor: pointer;
             color: white;
-            background: linear-gradient(90deg, #14b7ff, #6a5cff, #c026d3);
+            appearance: none;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #14b7ff 0%, #6a5cff 52%, #c026d3 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
             box-shadow:
-                0 0 20px rgba(20, 183, 255, 0.3),
-                0 0 30px rgba(192, 38, 211, 0.2);
+                -16px 0 26px -18px rgba(20, 183, 255, 0.85),
+                16px 0 26px -18px rgba(192, 38, 211, 0.75),
+                0 12px 24px rgba(106, 92, 255, 0.25);
             transition: 0.2s;
         }
 
