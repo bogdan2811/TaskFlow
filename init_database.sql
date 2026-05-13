@@ -1,8 +1,8 @@
 CREATE TABLE users (
     user_id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
+    username VARCHAR(20) NOT NULL UNIQUE,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -55,12 +55,14 @@ CREATE TABLE tasks (
     task_id BIGSERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    status VARCHAR(30) NOT NULL DEFAULT 'open',
+    status VARCHAR(30) NOT NULL DEFAULT 'todo',
     priority VARCHAR(30) NOT NULL DEFAULT 'medium',
+    category VARCHAR(100),
     creator_id BIGINT NOT NULL,
     chat_id BIGINT NOT NULL,
     source_message_id BIGINT,
     due_date TIMESTAMP,
+    version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tasks_creator
@@ -76,30 +78,30 @@ CREATE TABLE tasks (
         REFERENCES messages(message_id)
         ON DELETE SET NULL,
     CONSTRAINT chk_tasks_status
-        CHECK (status IN ('open', 'in_progress', 'done', 'cancelled')),
+        CHECK (status IN ('todo', 'in_progress', 'blocked', 'done')),
     CONSTRAINT chk_tasks_priority
-        CHECK (priority IN ('low', 'medium', 'high', 'urgent'))
+        CHECK (priority IN ('low', 'medium', 'high', 'critical'))
 );
 
-CREATE TABLE taskvisibility (
-    task_visibility_id BIGSERIAL PRIMARY KEY,
+CREATE TABLE taskassignees (
+    task_assignee_id BIGSERIAL PRIMARY KEY,
     task_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
-    granted_by BIGINT NOT NULL,
-    granted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_taskvisibility_task
+    assigned_by BIGINT NOT NULL,
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_taskassignees_task
         FOREIGN KEY (task_id)
         REFERENCES tasks(task_id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_taskvisibility_user
+    CONSTRAINT fk_taskassignees_user
         FOREIGN KEY (user_id)
         REFERENCES users(user_id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_taskvisibility_granted_by
-        FOREIGN KEY (granted_by)
+    CONSTRAINT fk_taskassignees_assigned_by
+        FOREIGN KEY (assigned_by)
         REFERENCES users(user_id)
         ON DELETE RESTRICT,
-    CONSTRAINT uq_taskvisibility UNIQUE (task_id, user_id)
+    CONSTRAINT uq_taskassignees UNIQUE (task_id, user_id)
 );
 
 -- INDEXURI
@@ -119,6 +121,6 @@ CREATE INDEX idx_tasks_source_message_id ON tasks(source_message_id);
 CREATE INDEX idx_tasks_status ON tasks(status);
 CREATE INDEX idx_tasks_due_date ON tasks(due_date);
 
-CREATE INDEX idx_taskvisibility_task_id ON taskvisibility(task_id);
-CREATE INDEX idx_taskvisibility_user_id ON taskvisibility(user_id);
-CREATE INDEX idx_taskvisibility_granted_by ON taskvisibility(granted_by);
+CREATE INDEX idx_taskassignees_task_id ON taskassignees(task_id);
+CREATE INDEX idx_taskassignees_user_id ON taskassignees(user_id);
+CREATE INDEX idx_taskassignees_assigned_by ON taskassignees(assigned_by);

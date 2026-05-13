@@ -50,7 +50,7 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: taskflow-app
+          service: taskflow-backup
           region: europe-west1
           image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/taskflow-repo/taskflow:latest
           flags: '--vpc-connector=run-to-tf-vpc-conn --vpc-egress=private-ranges-only'

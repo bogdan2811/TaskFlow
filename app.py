@@ -1,9 +1,9 @@
-import os
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from extensions import engine, Base
+from models import chat, message, task, user
 from routes.auth import router as auth_router
 from routes.chats import router as chats_router
 from routes.tasks import router as tasks_router
