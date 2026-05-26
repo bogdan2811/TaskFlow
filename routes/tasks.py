@@ -272,6 +272,29 @@ def get_chat_tasks(
     return {'tasks': [t.to_dict() for t in tasks]}
 
 
+@router.delete('/tasks/{task_id}', status_code=200)
+async def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    task = db.query(Task).filter_by(task_id=task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail={'error': 'Task not found.'})
+
+    _require_chat_participant(current_user.user_id, task.chat_id, db)
+
+    if task.creator_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail={'error': 'You do not have permission to delete this task.'})
+
+    chat_id = task.chat_id
+    db.delete(task)
+    db.commit()
+
+    await manager.broadcast(chat_id, {'type': 'task_deleted', 'taskId': task_id, 'chatId': chat_id})
+    return {'message': 'Task deleted successfully', 'taskId': task_id}
+
+
 @router.get('/tasks')
 def list_all_tasks(
     db: Session = Depends(get_db),
