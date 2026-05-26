@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Account - TaskFlow</title>
+    <style>
+        :root {
+            --bg: #0d0e22;
+            --surface: rgba(13, 17, 34, 0.45);
+            --surface-soft: rgba(255, 255, 255, 0.03);
+            --surface-strong: rgba(255, 255, 255, 0.07);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --line: rgba(255, 255, 255, 0.06);
+            --accent: #8b5cf6;
+            --accent-soft: rgba(139, 92, 246, 0.15);
+            --accent-hover: #a78bfa;
+            --teal: #06b6d4;
+            --amber: #f59e0b;
+            --danger: #ef4444;
+            --danger-soft: rgba(239, 68, 68, 0.15);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+            --glass-blur: blur(20px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 12% 25%, rgba(0, 229, 255, 0.32) 0%, transparent 60%), 
+                        radial-gradient(circle at 88% 75%, rgba(139, 92, 246, 0.38) 0%, transparent 65%), 
+                        var(--bg);
+            background-attachment: fixed;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .card {
+            width: min(720px, 100%);
+            background: rgba(13, 17, 34, 0.65);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            position: relative;
+        }
+
+        .back-btn {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 38px;
+            padding: 0 18px;
+            border-radius: 19px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(-2px);
+        }
+
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        /* Profile Photo Mockup Row */
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 20px;
+        }
+
+        .avatar-container {
+            width: 90px;
+            height: 90px;
+            border-radius: 18px;
+            background: #ffe4e6;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .avatar-silhouette {
+            width: 70px;
+            height: 70px;
+            color: #ffffff;
+            opacity: 0.95;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .profile-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+        }
+
+        .change-photo-btn {
+            align-self: flex-start;
+            height: 32px;
+            padding: 0 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .change-photo-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .profile-help {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        /* Form Layout */
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field label {
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .input {
+            width: 100%;
+            height: 42px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: 0 16px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .field-help {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: -2px;
+        }
+
+        /* Grid for Password Section */
+        .password-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Responsive Break for Grid */
+        @media (max-width: 580px) {
+            .password-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Password settings container (starts collapsed) */
+        #passwordSettingsGroup {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, margin-top 0.4s ease, border-top 0.4s ease;
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border-top: 1px solid transparent;
+            padding-top: 0;
+        }
+
+        #passwordSettingsGroup.show {
+            max-height: 320px;
+            opacity: 1;
+            margin-top: 8px;
+            border-top: 1px solid var(--line);
+            padding-top: 20px;
+        }
+
+        /* Expandable confirm password field container */
+        #confirmNewPasswordGroup {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #confirmNewPasswordGroup.show {
+            max-height: 100px;
+            opacity: 1;
+            margin-top: 4px;
+        }
+
+        /* Change Password toggle button styled like Back button */
+        .toggle-pwd-btn {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 38px;
+            padding: 0 18px;
+            border-radius: 19px;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #d8b4fe;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 4px;
+        }
+
+        .toggle-pwd-btn:hover {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+        }
+
+        .toggle-pwd-btn.active {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ff8b8b;
+        }
+
+        .toggle-pwd-btn.active:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+        }
+
+        /* Save Button styled to match mockup */
+        .btn-save {
+            width: 100%;
+            height: 46px;
+            border-radius: 23px;
+            border: none;
+            background: linear-gradient(90deg, #14b7ff 0%, #6a5cff 55%, #a855f7 100%);
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 750;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(106, 92, 255, 0.25);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-save:hover:not(:disabled) {
+            transform: translateY(-1.5px);
+            box-shadow: 0 6px 20px rgba(106, 92, 255, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .btn-save:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        /* Status Toasts */
+        .status-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            z-index: 2000;
+            max-width: 460px;
+            padding: 12px 18px;
+            border-radius: 10px;
+            color: #ffffff;
+            background: #0f101f;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-toast.show {
+            opacity: 1;
+        }
+
+        .status-toast.error {
+            background: rgba(239, 68, 68, 0.85);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <a href="/dashboard" class="back-btn">← Back</a>
+
+        <div class="header">
+            <h1>Edit Account</h1>
+            <p>Update your username, email, and password securely.</p>
+        </div>
+
+        <!-- Profile Photo Row -->
+        <div class="profile-row">
+            <div class="avatar-container">
+                <svg class="avatar-silhouette" viewBox="0 0 100 100" fill="currentColor">
+                    <!-- Silhouette silhouette vector matching the design avatar -->
+                    <circle cx="50" cy="35" r="20" fill="white" />
+                    <path d="M50 60c-25 0-35 15-35 30h70c0-15-10-30-35-30z" fill="white" />
+                </svg>
+            </div>
+            <div class="profile-info">
+                <span class="profile-label">Profile photo</span>
+                <button class="change-photo-btn" id="changePhotoBtn" type="button">Change photo</button>
+                <span class="profile-help">Upload a square JPG or PNG up to 2MB.</span>
+            </div>
+        </div>
+
+        <!-- Form Fields -->
+        <form id="editAccountForm" class="form">
+            <div class="field">
+                <label for="username">Username</label>
+                <input id="username" class="input" type="text" autocomplete="username" required>
+                <span class="field-help">5-20 characters, no spaces</span>
+            </div>
+
+            <div class="field">
+                <label for="email">Email Address</label>
+                <input id="email" class="input" type="email" autocomplete="email" required>
+            </div>
+
+            <button type="button" id="togglePasswordBtn" class="toggle-pwd-btn">
+                Change Password
+            </button>
+
+            <!-- Collapsible Password Settings Group -->
+            <div id="passwordSettingsGroup">
+                <div class="password-grid">
+                    <div class="field">
+                        <label for="currentPassword">Current Password</label>
+                        <input id="currentPassword" class="input" type="password" autocomplete="current-password" placeholder="••••••••">
+                    </div>
+                    <div class="field">
+                        <label for="newPassword">New Password</label>
+                        <input id="newPassword" class="input" type="password" autocomplete="new-password" placeholder="••••••••">
+                    </div>
+                </div>
+
+                <!-- Expandable confirmation field -->
+                <div id="confirmNewPasswordGroup">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input id="confirmNewPassword" class="input" type="password" autocomplete="new-password" placeholder="••••••••">
+                </div>
+            </div>
+
+            <button class="btn-save" type="submit" id="saveBtn">Save Changes</button>
+        </form>
+    </div>
+
+    <!-- Feedback Toasts -->
+    <div id="toast" class="status-toast"></div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        let originalUser = null;
+        let isChangingPassword = false;
+
+        const elements = {
+            form: document.getElementById('editAccountForm'),
+            username: document.getElementById('username'),
+            email: document.getElementById('email'),
+            togglePasswordBtn: document.getElementById('togglePasswordBtn'),
+            passwordSettingsGroup: document.getElementById('passwordSettingsGroup'),
+            currentPassword: document.getElementById('currentPassword'),
+            newPassword: document.getElementById('newPassword'),
+            confirmNewPasswordGroup: document.getElementById('confirmNewPasswordGroup'),
+            confirmNewPassword: document.getElementById('confirmNewPassword'),
+            saveBtn: document.getElementById('saveBtn'),
+            changePhotoBtn: document.getElementById('changePhotoBtn'),
+            toast: document.getElementById('toast')
+        };
+
+        function showToast(message, type = 'success') {
+            elements.toast.textContent = message;
+            elements.toast.className = 'status-toast';
+            if (type === 'error') {
+                elements.toast.classList.add('error');
+            }
+            elements.toast.classList.add('show');
+
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => {
+                elements.toast.classList.remove('show');
+            }, 3200);
+        }
+
+        async function fetchAccountDetails() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    throw new Error('Authentication failed');
+                }
+                const data = await res.json();
+                originalUser = data.user;
+                elements.username.value = data.user.username;
+                elements.email.value = data.user.email;
+            } catch (error) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // Initialize pre-filling
+        fetchAccountDetails();
+
+        // Toggle Password Settings Visibility and validations
+        elements.togglePasswordBtn.addEventListener('click', () => {
+            isChangingPassword = !isChangingPassword;
+            if (isChangingPassword) {
+                elements.passwordSettingsGroup.classList.add('show');
+                elements.togglePasswordBtn.classList.add('active');
+                elements.togglePasswordBtn.textContent = 'Cancel Change';
+                elements.currentPassword.setAttribute('required', 'required');
+                elements.newPassword.setAttribute('required', 'required');
+            } else {
+                elements.passwordSettingsGroup.classList.remove('show');
+                elements.togglePasswordBtn.classList.remove('active');
+                elements.togglePasswordBtn.textContent = 'Change Password';
+                elements.currentPassword.removeAttribute('required');
+                elements.newPassword.removeAttribute('required');
+
+                // Clear password inputs
+                elements.currentPassword.value = '';
+                elements.newPassword.value = '';
+                elements.confirmNewPassword.value = '';
+                elements.confirmNewPasswordGroup.classList.remove('show');
+                elements.confirmNewPassword.removeAttribute('required');
+            }
+        });
+
+        // Dynamic reveal of Confirm New Password field based on New Password input
+        elements.newPassword.addEventListener('input', () => {
+            const hasNewPwd = elements.newPassword.value.length > 0;
+            if (hasNewPwd) {
+                elements.confirmNewPasswordGroup.classList.add('show');
+                elements.confirmNewPassword.setAttribute('required', 'required');
+            } else {
+                elements.confirmNewPasswordGroup.classList.remove('show');
+                elements.confirmNewPassword.removeAttribute('required');
+                elements.confirmNewPassword.value = '';
+            }
+        });
+
+        // Profile Photo visual handler
+        elements.changePhotoBtn.addEventListener('click', () => {
+            showToast('Profile photo uploading is not supported in this version', 'error');
+        });
+
+        // Form submission handling
+        elements.form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const username = elements.username.value.trim();
+            const email = elements.email.value.trim();
+            const currentPassword = elements.currentPassword.value;
+            const newPassword = elements.newPassword.value;
+            const confirmNewPassword = elements.confirmNewPassword.value;
+
+            if (isChangingPassword) {
+                if (!currentPassword) {
+                    showToast("Current password is required to change password", 'error');
+                    return;
+                }
+                if (!newPassword) {
+                    showToast("New password is required", 'error');
+                    return;
+                }
+                if (newPassword !== confirmNewPassword) {
+                    showToast("New passwords do not match", 'error');
+                    return;
+                }
+            }
+
+            elements.saveBtn.disabled = true;
+            elements.saveBtn.textContent = 'Saving...';
+
+            try {
+                const body = {};
+                if (username !== originalUser.username) body.username = username;
+                if (email !== originalUser.email) body.email = email;
+
+                if (isChangingPassword) {
+                    body.currentPassword = currentPassword;
+                    body.newPassword = newPassword;
+                    body.confirmNewPassword = confirmNewPassword;
+                }
+
+                // If nothing has actually changed, redirect back immediately
+                if (Object.keys(body).length === 0) {
+                    showToast('No changes made');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1200);
+                    return;
+                }
+
+                const res = await fetch('/api/auth/account', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    const detail = data.detail || {};
+                    const message = detail.error || data.error || res.statusText || 'Update failed';
+                    throw new Error(message);
+                }
+
+                showToast('Account details saved successfully!');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1200);
+            } catch (error) {
+                showToast(error.message, 'error');
+                elements.saveBtn.disabled = false;
+                elements.saveBtn.textContent = 'Save Changes';
+            }
+        });
+    </script>
+</body>
+
+</html>

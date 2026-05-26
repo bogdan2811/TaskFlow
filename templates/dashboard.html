@@ -440,10 +440,13 @@
         .chat-list {
             display: grid;
             gap: 10px;
+            min-width: 0;
         }
 
         .chat-item {
             width: 100%;
+            min-width: 0;
+            overflow: hidden;
             text-align: left;
             padding: 14px;
             border-radius: 12px;
@@ -642,12 +645,57 @@
         }
 
         .member-row .line,
-        .task-row .line,
         .user-row .line {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
+            min-width: 0;
+        }
+
+        /* Task card header row: title + edit button */
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            transition: align-items 0.2s ease;
+        }
+
+        .task-header .name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: default;
+            transition: white-space 0.15s ease;
+        }
+
+        /* On hover: expand title to full text, pin Edit button to top */
+        .task-row:hover .task-header {
+            align-items: flex-start;
+        }
+
+        .task-row:hover .task-header .name {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
+        }
+
+        .task-header .btn {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Task card meta row: priority badge + deadline */
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .task-deadline {
@@ -939,6 +987,115 @@
                 max-width: 92%;
             }
         }
+
+        /* Premium User Profile Dropdown */
+        .user-menu-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .user-menu-btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-menu-btn.open {
+            background: rgba(139, 92, 246, 0.12);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .user-menu-btn .caret-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--muted);
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .user-menu-btn.open .caret-icon {
+            transform: rotate(180deg);
+            color: var(--text);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 190px;
+            background: rgba(13, 17, 34, 0.85);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-8px);
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .user-dropdown:not(.hidden) {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text);
+            font-size: 0.86rem;
+            font-weight: 550;
+            text-align: left;
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(2px);
+        }
+
+        .dropdown-item-icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.8;
+            transition: transform 0.15s ease;
+        }
+
+        .dropdown-item:hover .dropdown-item-icon {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .dropdown-item.danger-hover:hover {
+            background: var(--danger-soft);
+            color: #ff8b8b;
+        }
     </style>
 </head>
 
@@ -949,9 +1106,29 @@
             <span>TaskFlow</span>
         </div>
         <div class="top-actions">
-            <span id="currentUserLabel"></span>
             <span id="socketLabel" class="pill hidden">Offline</span>
-            <button id="logoutBtn" class="btn ghost small hidden" type="button">Logout</button>
+            <div class="user-menu-container hidden" id="userMenuContainer">
+                <button id="userMenuBtn" class="user-menu-btn" type="button">
+                    <span id="currentUserLabel"></span>
+                    <svg class="caret-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div id="userDropdown" class="user-dropdown hidden">
+                    <button id="editAccountBtn" class="dropdown-item" type="button">
+                        <svg class="dropdown-item-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                        </svg>
+                        Edit Account
+                    </button>
+                    <button id="logoutBtn" class="dropdown-item danger-hover" type="button">
+                        <svg class="dropdown-item-icon" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -1066,7 +1243,7 @@
             <div id="messages" class="messages">
                 <div class="empty">No chat selected</div>
             </div>
-            <form id="messageForm" class="composer">
+            <form id="messageForm" class="composer hidden">
                 <input id="messageInput" class="input" type="text" placeholder="Message" autocomplete="off" disabled>
                 <button id="sendMessageBtn" class="btn" type="submit" disabled>Send</button>
             </form>
@@ -1213,6 +1390,10 @@
             currentUserLabel: document.getElementById('currentUserLabel'),
             socketLabel: document.getElementById('socketLabel'),
             logoutBtn: document.getElementById('logoutBtn'),
+            userMenuContainer: document.getElementById('userMenuContainer'),
+            userMenuBtn: document.getElementById('userMenuBtn'),
+            userDropdown: document.getElementById('userDropdown'),
+            editAccountBtn: document.getElementById('editAccountBtn'),
             loginForm: document.getElementById('loginForm'),
             registerForm: document.getElementById('registerForm'),
             refreshBtn: document.getElementById('refreshBtn'),
@@ -1308,13 +1489,17 @@
         function setAuthMode(isAuthed) {
             el.authPage.classList.toggle('hidden', isAuthed);
             el.appPage.classList.toggle('hidden', !isAuthed);
-            el.logoutBtn.classList.toggle('hidden', !isAuthed);
+            el.userMenuContainer.classList.toggle('hidden', !isAuthed);
             el.socketLabel.classList.toggle('hidden', !isAuthed);
+            if (!isAuthed) {
+                el.userDropdown.classList.add('hidden');
+                el.userMenuBtn.classList.remove('open');
+            }
         }
 
         async function boot() {
             if (!state.token) {
-                setAuthMode(false);
+                window.location.href = '/login';
                 return;
             }
 
@@ -1328,8 +1513,7 @@
                 localStorage.removeItem('token');
                 state.token = null;
                 state.user = null;
-                setAuthMode(false);
-                showStatus(error.message, 'error');
+                window.location.href = '/login';
             }
         }
 
@@ -1369,11 +1553,13 @@
             el.chatList.innerHTML = state.chats.length
                 ? state.chats.map(chat => {
                     const active = state.selectedChat?.id === chat.id ? 'active' : '';
-                    const lastMessage = chat.lastMessage ? chat.lastMessage.content : 'No messages';
+                    const lastMessage = chat.lastMessage
+                        ? `${userName(chat.lastMessage.senderId)}: ${chat.lastMessage.content}`
+                        : 'No messages';
                     return `
                         <button class="chat-item ${active}" type="button" data-chat-id="${chat.id}">
                             <div class="chat-name">${escapeHtml(chat.name)}</div>
-                            <div class="chat-meta">${chat.participantCount} members - ${escapeHtml(lastMessage)}</div>
+                            <div class="chat-meta">${escapeHtml(lastMessage)}</div>
                         </button>
                     `;
                 }).join('')
@@ -1434,7 +1620,7 @@
             const hasChat = Boolean(state.selectedChat);
             el.activeChatName.textContent = hasChat ? state.selectedChat.name : 'No chat selected';
             el.activeChatMeta.textContent = hasChat
-                ? `${state.participants.length} members`
+                ? (state.socketReady ? '1 online' : '0 online')
                 : '';
             el.renameChatName.value = hasChat ? state.selectedChat.name : '';
             el.messageInput.disabled = !hasChat;
@@ -1442,6 +1628,7 @@
             el.leaveChatBtn.disabled = !hasChat;
             el.leaveChatBtn.classList.toggle('hidden', !hasChat);
             el.toggleDetailsBtn.classList.toggle('hidden', !hasChat);
+            el.messageForm.classList.toggle('hidden', !hasChat);
 
             const isOwner = hasChat && state.selectedChat.createdBy === state.user?.id;
             el.renameChatName.disabled = !isOwner;
@@ -1693,21 +1880,21 @@
                     const descText = task.description ? escapeHtml(task.description) : 'No description';
                     return `
                     <div class="task-row">
-                        <div class="line">
-                            <div class="name">${escapeHtml(task.title)}</div>
-                            <div class="inline">
-                                <span class="pill ${priorityClass}">${escapeHtml(task.priority)}</span>
-                                ${canEdit ? `<button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>` : ''}
-                            </div>
+                        <div class="task-header">
+                            <div class="name" title="${escapeHtml(task.title)}">${escapeHtml(task.title)}</div>
+                            ${canEdit ? `<button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>` : ''}
                         </div>
-                        <div class="${deadlineClass}">
-                            <span class="deadline-icon">📅</span>
-                            <span class="deadline-text">${deadlineText}</span>
+                        <div class="task-meta">
+                            <span class="pill ${priorityClass}">${escapeHtml(task.priority)}</span>
+                            <div class="${deadlineClass}">
+                                <span class="deadline-icon">📅</span>
+                                <span class="deadline-text">${deadlineText}</span>
+                            </div>
                         </div>
                         <div class="task-desc">${descText}</div>
                         <div class="task-details">
                             <div class="muted">Category: ${task.category ? escapeHtml(task.category) : 'None'}</div>
-                            <div class="muted">Status: ${escapeHtml(task.status)}</div>
+                            <div class="muted">Status: ${escapeHtml(formatStatus(task.status))}</div>
                             <div class="muted">Assignees: ${task.assigneeIds.map(userName).map(escapeHtml).join(', ') || 'None'}</div>
                         </div>
                     </div>
@@ -1763,6 +1950,9 @@
         function updateSocketLabel() {
             el.socketLabel.textContent = state.socketReady ? 'Live' : 'Offline';
             el.socketLabel.classList.toggle('live', state.socketReady);
+            if (state.selectedChat) {
+                el.activeChatMeta.textContent = state.socketReady ? '1 online' : '0 online';
+            }
         }
 
         async function handleSocketEvent(data) {
@@ -1866,6 +2056,19 @@
                 .replace(/'/g, '&#039;');
         }
 
+        function formatStatus(raw) {
+            const map = {
+                todo:        'To Do',
+                in_progress: 'In Progress',
+                in_review:   'In Review',
+                done:        'Done',
+                cancelled:   'Cancelled',
+                blocked:     'Blocked',
+            };
+            const key = String(raw ?? '').toLowerCase().replace(/[\s-]+/g, '_');
+            return map[key] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
         el.loginForm.addEventListener('submit', async event => {
             event.preventDefault();
             try {
@@ -1911,9 +2114,36 @@
             state.token = null;
             state.user = null;
             clearSelection();
-            setAuthMode(false);
-            el.currentUserLabel.textContent = '';
-            showStatus('Logged out');
+            window.location.href = '/login';
+        });
+
+        // Toggle user profile dropdown menu
+        el.userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = el.userMenuBtn.classList.contains('open');
+            if (isOpen) {
+                el.userDropdown.classList.add('hidden');
+                el.userMenuBtn.classList.remove('open');
+            } else {
+                el.userDropdown.classList.remove('hidden');
+                el.userMenuBtn.classList.add('open');
+            }
+        });
+
+        // Close dropdown when clicking outside the menu container
+        window.addEventListener('click', (e) => {
+            if (state.token && el.userMenuContainer && !el.userMenuContainer.contains(e.target)) {
+                el.userDropdown.classList.add('hidden');
+                el.userMenuBtn.classList.remove('open');
+            }
+        });
+
+        // Redirect to dedicated edit account page
+        el.editAccountBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            el.userDropdown.classList.add('hidden');
+            el.userMenuBtn.classList.remove('open');
+            window.location.href = '/editaccount';
         });
 
         el.refreshBtn.addEventListener('click', async () => {
