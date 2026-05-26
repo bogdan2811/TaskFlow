@@ -231,7 +231,19 @@
             const data = await res.json();
 
             if (res.ok) {
-                window.location.href = '/login';
+                const loginRes = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const loginData = await loginRes.json();
+
+                if (loginRes.ok) {
+                    localStorage.setItem('token', loginData.token);
+                    window.location.href = '/dashboard';
+                } else {
+                    window.location.href = '/login';
+                }
             } else {
                 errorEl.style.display = 'block';
                 errorEl.textContent = data.detail?.error || 'Registration failed';

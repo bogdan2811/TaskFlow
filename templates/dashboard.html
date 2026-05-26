@@ -376,6 +376,62 @@
             box-shadow: var(--shadow);
         }
 
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(2, 4, 15, 0.66);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .modal {
+            width: min(460px, 100%);
+            max-height: min(680px, calc(100vh - 40px));
+            overflow: auto;
+            background: rgba(13, 17, 34, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+        }
+
+        .modal-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 16px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.04);
+            display: grid;
+            place-items: center;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .modal-body {
+            padding: 18px;
+        }
+
         .panel-header {
             min-height: 60px;
             padding: 16px 20px;
@@ -653,6 +709,45 @@
             min-width: 0;
         }
 
+        .person {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .person-details {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .mini-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .sender-mini-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .sender-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
         /* Task card header row: title + edit button */
         .task-header {
             display: flex;
@@ -764,6 +859,14 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
             opacity: 0.9;
+        }
+
+        .chat-admin-menu {
+            margin-top: 2px;
+            display: grid;
+            gap: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .header-icon-btn {
@@ -1009,6 +1112,26 @@
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
         .user-menu-btn:hover {
             background: rgba(255, 255, 255, 0.07);
             border-color: rgba(139, 92, 246, 0.3);
@@ -1109,12 +1232,24 @@
             <span id="socketLabel" class="pill hidden">Offline</span>
             <div class="user-menu-container hidden" id="userMenuContainer">
                 <button id="userMenuBtn" class="user-menu-btn" type="button">
+                    <span class="user-avatar">
+                        <img id="currentUserAvatar" src="/avatar_photos/eagle.jpeg" alt="">
+                    </span>
                     <span id="currentUserLabel"></span>
                     <svg class="caret-icon" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
                 <div id="userDropdown" class="user-dropdown hidden">
+                    <button id="overviewMenuBtn" class="dropdown-item" type="button">
+                        <svg class="dropdown-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="8" rx="1.5"></rect>
+                            <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+                            <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+                            <rect x="3" y="15" width="7" height="6" rx="1.5"></rect>
+                        </svg>
+                        Overview
+                    </button>
                     <button id="editAccountBtn" class="dropdown-item" type="button">
                         <svg class="dropdown-item-icon" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
@@ -1209,17 +1344,6 @@
                 </div>
             </div>
             <div class="panel-body stack">
-                <form id="createChatForm" class="stack hidden">
-                    <div class="field">
-                        <label for="newChatName">New chat</label>
-                        <input id="newChatName" class="input" type="text" placeholder="Project chat">
-                    </div>
-                    <div class="field">
-                        <label>Members</label>
-                        <div id="createMembersList" class="checkbox-list"></div>
-                    </div>
-                    <button class="btn" type="submit">Create chat</button>
-                </form>
                 <div id="chatList" class="chat-list"></div>
             </div>
         </section>
@@ -1261,33 +1385,36 @@
             <div id="membersPane" class="panel-body stack hidden">
                 <div id="chatAdminSection" class="settings-card stack hidden">
                     <div class="settings-header">
-                        <span class="settings-title">Chat Administration</span>
+                        <span class="settings-title">Chat Settings</span>
+                        <button id="editChatMenuBtn" class="btn secondary small" type="button">Edit Chat</button>
                     </div>
-                    
-                    <form id="renameChatForm" class="stack">
-                        <div class="field">
-                            <label for="renameChatName" class="muted">Rename Chat</label>
-                            <div class="split">
-                                <input id="renameChatName" class="input" type="text" placeholder="Enter chat name..." disabled>
-                                <button id="renameChatBtn" class="btn secondary small" type="submit" disabled>Save</button>
-                            </div>
-                        </div>
-                    </form>
 
-                    <form id="addMemberForm" class="stack">
-                        <div class="field">
-                            <label for="addMemberSelect" class="muted">Add Member</label>
-                            <div class="split">
-                                <select id="addMemberSelect" class="select" disabled></select>
-                                <button id="addMemberBtn" class="btn secondary small" type="submit" disabled>Add</button>
+                    <div id="chatAdminMenu" class="chat-admin-menu hidden">
+                        <form id="renameChatForm" class="stack">
+                            <div class="field">
+                                <label for="renameChatName" class="muted">Rename Chat</label>
+                                <div class="split">
+                                    <input id="renameChatName" class="input" type="text" placeholder="Enter chat name..." disabled>
+                                    <button id="renameChatBtn" class="btn secondary small" type="submit" disabled>Save</button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
 
-                    <div class="field" style="margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px;">
-                        <button id="deleteChatBtn" class="btn danger small" type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" disabled>
-                            <span></span> Delete Chat
-                        </button>
+                        <form id="addMemberForm" class="stack">
+                            <div class="field">
+                                <label for="addMemberSelect" class="muted">Add Member</label>
+                                <div class="split">
+                                    <select id="addMemberSelect" class="select" disabled></select>
+                                    <button id="addMemberBtn" class="btn secondary small" type="submit" disabled>Add</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div class="field" style="margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px;">
+                            <button id="deleteChatBtn" class="btn danger small" type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" disabled>
+                                <span></span> Delete Chat
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1364,6 +1491,33 @@
         </section>
     </main>
 
+    <div id="createChatModal" class="modal-backdrop hidden">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="createChatTitle">
+            <div class="modal-header">
+                <h2 id="createChatTitle">Create chat</h2>
+                <button id="closeCreateChatBtn" class="modal-close" type="button" aria-label="Close create chat">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createChatForm" class="stack">
+                    <div class="field">
+                        <label for="newChatName">New chat</label>
+                        <input id="newChatName" class="input" type="text" placeholder="Project chat">
+                    </div>
+                    <div class="field">
+                        <label>Members</label>
+                        <div id="createMembersList" class="checkbox-list"></div>
+                    </div>
+                    <button class="btn" type="submit">Create chat</button>
+                </form>
+            </div>
+        </section>
+    </div>
+
     <div id="status" class="status hidden"></div>
 
     <script>
@@ -1384,21 +1538,32 @@
             activePane: 'tasks'
         };
 
+        const avatarSources = {
+            '1': '/avatar_photos/eagle.jpeg',
+            '2': '/avatar_photos/dog.jpeg',
+            '3': '/avatar_photos/capybara.jpg',
+            '4': '/avatar_photos/cat.jpeg'
+        };
+
         const el = {
             authPage: document.getElementById('authPage'),
             appPage: document.getElementById('appPage'),
             currentUserLabel: document.getElementById('currentUserLabel'),
+            currentUserAvatar: document.getElementById('currentUserAvatar'),
             socketLabel: document.getElementById('socketLabel'),
             logoutBtn: document.getElementById('logoutBtn'),
             userMenuContainer: document.getElementById('userMenuContainer'),
             userMenuBtn: document.getElementById('userMenuBtn'),
             userDropdown: document.getElementById('userDropdown'),
+            overviewMenuBtn: document.getElementById('overviewMenuBtn'),
             editAccountBtn: document.getElementById('editAccountBtn'),
             loginForm: document.getElementById('loginForm'),
             registerForm: document.getElementById('registerForm'),
             refreshBtn: document.getElementById('refreshBtn'),
             showCreateChatBtn: document.getElementById('showCreateChatBtn'),
             chatCountLabel: document.getElementById('chatCountLabel'),
+            createChatModal: document.getElementById('createChatModal'),
+            closeCreateChatBtn: document.getElementById('closeCreateChatBtn'),
             createChatForm: document.getElementById('createChatForm'),
             createMembersList: document.getElementById('createMembersList'),
             newChatName: document.getElementById('newChatName'),
@@ -1415,6 +1580,8 @@
             tasksTab: document.getElementById('tasksTab'),
             membersPane: document.getElementById('membersPane'),
             tasksPane: document.getElementById('tasksPane'),
+            editChatMenuBtn: document.getElementById('editChatMenuBtn'),
+            chatAdminMenu: document.getElementById('chatAdminMenu'),
             renameChatForm: document.getElementById('renameChatForm'),
             renameChatName: document.getElementById('renameChatName'),
             renameChatBtn: document.getElementById('renameChatBtn'),
@@ -1449,6 +1616,11 @@
             showStatus.timer = setTimeout(() => el.status.classList.add('hidden'), 3200);
         }
 
+        function closeCreateChatModal() {
+            el.createChatForm.reset();
+            el.createChatModal.classList.add('hidden');
+        }
+
         async function api(path, options = {}) {
             const headers = { ...(options.headers || {}) };
             if (!(options.body instanceof FormData)) {
@@ -1472,6 +1644,27 @@
         function userName(userId) {
             const user = state.users.find(item => item.id === userId);
             return user ? user.username : `User ${userId}`;
+        }
+
+        function displayUserName(user) {
+            return user.id === state.user?.id ? `${user.username} (You)` : user.username;
+        }
+
+        function sortUsersByName(users) {
+            return [...users].sort((a, b) => a.username.localeCompare(b.username, undefined, { sensitivity: 'base' }));
+        }
+
+        function orderedParticipants() {
+            if (!state.selectedChat) return [];
+            const ownerId = state.selectedChat.createdBy;
+            const owner = state.participants.find(user => user.id === ownerId);
+            const rest = sortUsersByName(state.participants.filter(user => user.id !== ownerId));
+            return owner ? [owner, ...rest] : rest;
+        }
+
+        function truncateText(value, maxLength = 64) {
+            const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+            return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
         }
 
         function formatDate(value) {
@@ -1508,6 +1701,7 @@
                 state.user = me.user;
                 setAuthMode(true);
                 el.currentUserLabel.textContent = state.user.username;
+                applyCurrentUserAvatar();
                 await reloadAll();
             } catch (error) {
                 localStorage.removeItem('token');
@@ -1515,6 +1709,30 @@
                 state.user = null;
                 window.location.href = '/login';
             }
+        }
+
+        function currentUserAvatarValue() {
+            if (!state.user) return '1';
+            return avatarForUser(state.user.id);
+        }
+
+        function avatarForUser(userId) {
+            const key = `taskflow_avatar_${userId}`;
+            let avatar = localStorage.getItem(key);
+            if (!avatar || !avatarSources[avatar]) {
+                avatar = String(Math.floor(Math.random() * 4) + 1);
+                localStorage.setItem(key, avatar);
+            }
+            return avatar;
+        }
+
+        function avatarSrcForUser(userId) {
+            return avatarSources[avatarForUser(userId)];
+        }
+
+        function applyCurrentUserAvatar() {
+            const avatar = avatarSources[currentUserAvatarValue()] ? currentUserAvatarValue() : '1';
+            el.currentUserAvatar.src = avatarSources[avatar];
         }
 
         async function reloadAll() {
@@ -1537,12 +1755,18 @@
         }
 
         function renderUsers() {
-            const otherUsers = state.users.filter(user => user.id !== state.user?.id);
+            const otherUsers = sortUsersByName(state.users.filter(user => user.id !== state.user?.id));
             el.createMembersList.innerHTML = otherUsers.length
                 ? otherUsers.map(user => `
                     <label class="check-row">
                         <input type="checkbox" value="${user.id}" data-create-member>
-                        <span>${escapeHtml(user.username)} <span class="muted">${escapeHtml(user.email)}</span></span>
+                        <span class="person">
+                            <img class="mini-avatar" src="${avatarSrcForUser(user.id)}" alt="">
+                            <span class="person-details">
+                                <span>${escapeHtml(displayUserName(user))}</span>
+                                <span class="muted">${escapeHtml(user.email)}</span>
+                            </span>
+                        </span>
                     </label>
                 `).join('')
                 : '<div class="muted">No other users</div>';
@@ -1554,7 +1778,7 @@
                 ? state.chats.map(chat => {
                     const active = state.selectedChat?.id === chat.id ? 'active' : '';
                     const lastMessage = chat.lastMessage
-                        ? `${userName(chat.lastMessage.senderId)}: ${chat.lastMessage.content}`
+                        ? `${userName(chat.lastMessage.senderId)}: ${truncateText(chat.lastMessage.content)}`
                         : 'No messages';
                     return `
                         <button class="chat-item ${active}" type="button" data-chat-id="${chat.id}">
@@ -1641,6 +1865,9 @@
             if (adminSection) {
                 adminSection.classList.toggle('hidden', !isOwner);
             }
+            if (!isOwner) {
+                el.chatAdminMenu.classList.add('hidden');
+            }
         }
 
         function renderMessages() {
@@ -1664,7 +1891,10 @@
                 return `
                     <article class="message ${isMine ? 'mine' : ''} ${selected} ${isConsecutive ? 'consecutive' : ''}" data-message-id="${message.id}">
                         <div class="message-meta">
-                            <span class="sender-name">${escapeHtml(userName(message.senderId))}</span>
+                            <span class="sender-name">
+                                <img class="sender-mini-avatar" src="${avatarSrcForUser(message.senderId)}" alt="">
+                                <span>${escapeHtml(userName(message.senderId))}</span>
+                            </span>
                             <span class="message-time">${formatDate(message.sentAt)}</span>
                         </div>
                         <div class="bubble">${escapeHtml(message.content)}</div>
@@ -1688,25 +1918,30 @@
 
             const isOwner = state.selectedChat.createdBy === state.user.id;
             const participantIds = new Set(state.participants.map(user => user.id));
-            const options = state.users
+            const options = sortUsersByName(state.users
                 .filter(user => !participantIds.has(user.id))
-                .map(user => `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email)})</option>`);
+            ).map(user => `<option value="${user.id}">${escapeHtml(displayUserName(user))} (${escapeHtml(user.email)})</option>`);
             el.addMemberSelect.innerHTML = options.length ? options.join('') : '<option value="">No users</option>';
 
-            el.participantsList.innerHTML = state.participants.map(user => {
+            el.participantsList.innerHTML = orderedParticipants().map(user => {
                 const owner = user.id === state.selectedChat.createdBy;
                 const self = user.id === state.user.id;
                 return `
                     <div class="member-row">
                         <div class="line">
-                            <div class="name">${escapeHtml(user.username)}</div>
+                            <div class="person">
+                                <img class="mini-avatar" src="${avatarSrcForUser(user.id)}" alt="">
+                                <div class="person-details">
+                                    <div class="name">${escapeHtml(displayUserName(user))}</div>
+                                    <div class="muted">${escapeHtml(user.email)}</div>
+                                </div>
+                            </div>
                             <div class="inline">
                                 ${owner ? '<span class="pill live">Owner</span>' : ''}
                                 ${self ? '<span class="pill">You</span>' : ''}
                                 ${isOwner && !self ? `<button class="btn ghost small" type="button" data-remove-member="${user.id}">Remove</button>` : ''}
                             </div>
                         </div>
-                        <div class="muted">${escapeHtml(user.email)}</div>
                     </div>
                 `;
             }).join('');
@@ -1745,10 +1980,13 @@
             }
 
             el.taskAssigneesList.innerHTML = state.participants.length
-                ? state.participants.map(user => `
+                ? orderedParticipants().map(user => `
                     <label class="check-row">
-                        <input type="checkbox" value="${user.id}" data-task-assignee ${enabled ? '' : 'disabled'}>
-                        <span>${escapeHtml(user.username)}</span>
+                        <input type="checkbox" value="${user.id}" data-task-assignee ${enabled ? '' : 'disabled'} ${!editing && user.id === state.user?.id ? 'checked' : ''}>
+                        <span class="person">
+                            <img class="mini-avatar" src="${avatarSrcForUser(user.id)}" alt="">
+                            <span>${escapeHtml(displayUserName(user))}</span>
+                        </span>
                     </label>
                 `).join('')
                 : '<div class="muted">No members</div>';
@@ -1882,7 +2120,10 @@
                     <div class="task-row">
                         <div class="task-header">
                             <div class="name" title="${escapeHtml(task.title)}">${escapeHtml(task.title)}</div>
-                            ${canEdit ? `<button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>` : ''}
+                            ${canEdit ? `
+                                <button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>
+                                <button class="btn danger small" type="button" data-delete-task="${task.id}">Delete</button>
+                            ` : ''}
                         </div>
                         <div class="task-meta">
                             <span class="pill ${priorityClass}">${escapeHtml(task.priority)}</span>
@@ -2014,6 +2255,20 @@
                     renderTasks();
                     renderTaskForm();
                 }
+                return;
+            }
+            if (data.type === 'task_deleted') {
+                if (state.selectedChat && data.chatId === state.selectedChat.id) {
+                    state.tasks = state.tasks.filter(task => task.id !== data.taskId);
+                    if (state.editingTask?.id === data.taskId) {
+                        resetTaskForm();
+                        el.taskForm.classList.add('hidden');
+                        el.showTaskFormBtn.textContent = '+ New Task';
+                    }
+                    await refreshTasksAndCategories();
+                    renderTasks();
+                    renderTaskForm();
+                }
             }
         }
 
@@ -2101,8 +2356,18 @@
                         acceptTerms: document.getElementById('registerTerms').checked
                     })
                 });
+                const loginData = await api('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: document.getElementById('registerEmail').value,
+                        password: document.getElementById('registerPassword').value
+                    })
+                });
+                state.token = loginData.token;
+                localStorage.setItem('token', state.token);
                 showStatus('Account created');
                 el.registerForm.reset();
+                await boot();
             } catch (error) {
                 showStatus(error.message, 'error');
             }
@@ -2138,6 +2403,19 @@
             }
         });
 
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !el.createChatModal.classList.contains('hidden')) {
+                closeCreateChatModal();
+            }
+        });
+
+        el.overviewMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            el.userDropdown.classList.add('hidden');
+            el.userMenuBtn.classList.remove('open');
+            window.location.href = '/canvas';
+        });
+
         // Redirect to dedicated edit account page
         el.editAccountBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2156,33 +2434,18 @@
         });
 
         el.showCreateChatBtn.addEventListener('click', () => {
-            const isHidden = el.createChatForm.classList.contains('hidden');
-            if (isHidden) {
-                el.createChatForm.reset();
-                el.createChatForm.classList.remove('hidden');
-                el.showCreateChatBtn.innerHTML = `
-                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </span>
-                    <span class="btn-text">Cancel</span>
-                `;
-                el.showCreateChatBtn.setAttribute('title', 'Cancel');
-            } else {
-                el.createChatForm.reset();
-                el.createChatForm.classList.add('hidden');
-                el.showCreateChatBtn.innerHTML = `
-                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </span>
-                    <span class="btn-text">New Chat</span>
-                `;
-                el.showCreateChatBtn.setAttribute('title', 'New Chat');
+            el.createChatForm.reset();
+            el.createChatModal.classList.remove('hidden');
+            el.newChatName.focus();
+        });
+
+        el.closeCreateChatBtn.addEventListener('click', () => {
+            closeCreateChatModal();
+        });
+
+        el.createChatModal.addEventListener('click', event => {
+            if (event.target === el.createChatModal) {
+                closeCreateChatModal();
             }
         });
 
@@ -2197,18 +2460,7 @@
                         participant_ids: ids
                     })
                 });
-                el.createChatForm.reset();
-                el.createChatForm.classList.add('hidden');
-                el.showCreateChatBtn.innerHTML = `
-                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </span>
-                    <span class="btn-text">New Chat</span>
-                `;
-                el.showCreateChatBtn.setAttribute('title', 'New Chat');
+                closeCreateChatModal();
                 await reloadAll();
                 await selectChat(data.chat.id);
             } catch (error) {
@@ -2348,6 +2600,10 @@
             el.appPage.classList.toggle('details-open');
         });
 
+        el.editChatMenuBtn.addEventListener('click', () => {
+            el.chatAdminMenu.classList.toggle('hidden');
+        });
+
         el.addMemberForm.addEventListener('submit', async event => {
             event.preventDefault();
             if (!state.selectedChat || !el.addMemberSelect.value) return;
@@ -2381,16 +2637,45 @@
             }
         });
 
-        el.tasksList.addEventListener('click', event => {
-            const button = event.target.closest('[data-edit-task]');
-            if (!button) return;
-            const task = state.tasks.find(item => item.id === Number(button.dataset.editTask));
-            if (!task) return;
-            if (task.creatorId !== state.user.id) {
-                showStatus('Only the creator can edit this task', 'error');
+        el.tasksList.addEventListener('click', async event => {
+            const editButton = event.target.closest('[data-edit-task]');
+            const deleteButton = event.target.closest('[data-delete-task]');
+
+            if (editButton) {
+                const task = state.tasks.find(item => item.id === Number(editButton.dataset.editTask));
+                if (!task) return;
+                if (task.creatorId !== state.user.id) {
+                    showStatus('Only the creator can edit this task', 'error');
+                    return;
+                }
+                startEditTask(task);
                 return;
             }
-            startEditTask(task);
+
+            if (deleteButton) {
+                const task = state.tasks.find(item => item.id === Number(deleteButton.dataset.deleteTask));
+                if (!task) return;
+                if (task.creatorId !== state.user.id) {
+                    showStatus('Only the creator can delete this task', 'error');
+                    return;
+                }
+                if (!window.confirm('Delete this task?')) return;
+                try {
+                    await api(`/api/tasks/${task.id}`, { method: 'DELETE' });
+                    state.tasks = state.tasks.filter(item => item.id !== task.id);
+                    if (state.editingTask?.id === task.id) {
+                        resetTaskForm();
+                        el.taskForm.classList.add('hidden');
+                        el.showTaskFormBtn.textContent = '+ New Task';
+                    }
+                    await refreshTasksAndCategories();
+                    renderTasks();
+                    renderTaskForm();
+                    showStatus('Task deleted');
+                } catch (error) {
+                    showStatus(error.message, 'error');
+                }
+            }
         });
 
         el.taskForm.addEventListener('submit', async event => {

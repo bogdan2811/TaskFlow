@@ -106,7 +106,7 @@
             color: var(--muted);
         }
 
-        /* Profile Photo Mockup Row */
+        /* Profile Avatar Row */
         .profile-row {
             display: flex;
             align-items: center;
@@ -117,24 +117,28 @@
             border-radius: 20px;
         }
 
-        .avatar-container {
+        .avatar-container,
+        .avatar-option {
             width: 90px;
             height: 90px;
             border-radius: 18px;
-            background: #ffe4e6;
             overflow: hidden;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            flex-shrink: 0;
             border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
         }
 
-        .avatar-silhouette {
-            width: 70px;
-            height: 70px;
-            color: #ffffff;
-            opacity: 0.95;
+        .avatar-container {
+            flex-shrink: 0;
+        }
+
+        .avatar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .profile-info {
@@ -151,23 +155,28 @@
             color: var(--muted);
         }
 
-        .change-photo-btn {
-            align-self: flex-start;
-            height: 32px;
-            padding: 0 14px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .avatar-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
-        .change-photo-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.15);
+        .avatar-option {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            padding: 0;
+            cursor: pointer;
+            align-items: flex-end;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .avatar-option:hover,
+        .avatar-option.selected {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.55);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
 
         .profile-help {
@@ -385,19 +394,28 @@
             <p>Update your username, email, and password securely.</p>
         </div>
 
-        <!-- Profile Photo Row -->
+        <!-- Profile Avatar Row -->
         <div class="profile-row">
             <div class="avatar-container">
-                <svg class="avatar-silhouette" viewBox="0 0 100 100" fill="currentColor">
-                    <!-- Silhouette silhouette vector matching the design avatar -->
-                    <circle cx="50" cy="35" r="20" fill="white" />
-                    <path d="M50 60c-25 0-35 15-35 30h70c0-15-10-30-35-30z" fill="white" />
-                </svg>
+                <img id="avatarPreview" class="avatar-image" src="/avatar_photos/eagle.jpeg" alt="Selected avatar">
             </div>
             <div class="profile-info">
-                <span class="profile-label">Profile photo</span>
-                <button class="change-photo-btn" id="changePhotoBtn" type="button">Change photo</button>
-                <span class="profile-help">Upload a square JPG or PNG up to 2MB.</span>
+                <span class="profile-label">Profile avatar</span>
+                <div class="avatar-options" id="avatarOptions">
+                    <button class="avatar-option" type="button" data-avatar="1" aria-label="Avatar 1">
+                        <img class="avatar-image" src="/avatar_photos/eagle.jpeg" alt="">
+                    </button>
+                    <button class="avatar-option" type="button" data-avatar="2" aria-label="Avatar 2">
+                        <img class="avatar-image" src="/avatar_photos/dog.jpeg" alt="">
+                    </button>
+                    <button class="avatar-option" type="button" data-avatar="3" aria-label="Avatar 3">
+                        <img class="avatar-image" src="/avatar_photos/capybara.jpg" alt="">
+                    </button>
+                    <button class="avatar-option" type="button" data-avatar="4" aria-label="Avatar 4">
+                        <img class="avatar-image" src="/avatar_photos/cat.jpeg" alt="">
+                    </button>
+                </div>
+                <span class="profile-help">Choose one of the preset avatars.</span>
             </div>
         </div>
 
@@ -465,8 +483,16 @@
             confirmNewPasswordGroup: document.getElementById('confirmNewPasswordGroup'),
             confirmNewPassword: document.getElementById('confirmNewPassword'),
             saveBtn: document.getElementById('saveBtn'),
-            changePhotoBtn: document.getElementById('changePhotoBtn'),
+            avatarPreview: document.getElementById('avatarPreview'),
+            avatarOptions: document.getElementById('avatarOptions'),
             toast: document.getElementById('toast')
+        };
+
+        const avatarSources = {
+            '1': '/avatar_photos/eagle.jpeg',
+            '2': '/avatar_photos/dog.jpeg',
+            '3': '/avatar_photos/capybara.jpg',
+            '4': '/avatar_photos/cat.jpeg'
         };
 
         function showToast(message, type = 'success') {
@@ -495,10 +521,32 @@
                 originalUser = data.user;
                 elements.username.value = data.user.username;
                 elements.email.value = data.user.email;
+                applyAvatar(getSavedAvatar());
             } catch (error) {
                 localStorage.removeItem('token');
                 window.location.href = '/login';
             }
+        }
+
+        function avatarStorageKey() {
+            return originalUser ? `taskflow_avatar_${originalUser.id}` : 'taskflow_avatar_default';
+        }
+
+        function getSavedAvatar() {
+            let avatar = localStorage.getItem(avatarStorageKey());
+            if (!avatar || !avatarSources[avatar]) {
+                avatar = String(Math.floor(Math.random() * 4) + 1);
+                localStorage.setItem(avatarStorageKey(), avatar);
+            }
+            return avatar;
+        }
+
+        function applyAvatar(value) {
+            const avatar = avatarSources[String(value)] ? String(value) : '1';
+            elements.avatarPreview.src = avatarSources[avatar];
+            elements.avatarOptions.querySelectorAll('[data-avatar]').forEach(button => {
+                button.classList.toggle('selected', button.dataset.avatar === avatar);
+            });
         }
 
         // Initialize pre-filling
@@ -542,9 +590,13 @@
             }
         });
 
-        // Profile Photo visual handler
-        elements.changePhotoBtn.addEventListener('click', () => {
-            showToast('Profile photo uploading is not supported in this version', 'error');
+        // Profile avatar selection
+        elements.avatarOptions.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-avatar]');
+            if (!button || !originalUser) return;
+            localStorage.setItem(avatarStorageKey(), button.dataset.avatar);
+            applyAvatar(button.dataset.avatar);
+            showToast('Avatar updated');
         });
 
         // Form submission handling
@@ -556,6 +608,17 @@
             const currentPassword = elements.currentPassword.value;
             const newPassword = elements.newPassword.value;
             const confirmNewPassword = elements.confirmNewPassword.value;
+
+            const hasProfileChanges = username !== originalUser.username || email !== originalUser.email;
+            const hasPasswordChanges = isChangingPassword;
+
+            if (!hasProfileChanges && !hasPasswordChanges) {
+                showToast('No changes made');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1200);
+                return;
+            }
 
             if (isChangingPassword) {
                 if (!currentPassword) {
@@ -584,15 +647,6 @@
                     body.currentPassword = currentPassword;
                     body.newPassword = newPassword;
                     body.confirmNewPassword = confirmNewPassword;
-                }
-
-                // If nothing has actually changed, redirect back immediately
-                if (Object.keys(body).length === 0) {
-                    showToast('No changes made');
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 1200);
-                    return;
                 }
 
                 const res = await fetch('/api/auth/account', {

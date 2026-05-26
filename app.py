@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from extensions import engine, Base
@@ -12,6 +13,7 @@ from routes.ws import router as ws_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+app.mount('/avatar_photos', StaticFiles(directory='avatar_photos'), name='avatar_photos')
 app.include_router(auth_router)
 app.include_router(chats_router)
 app.include_router(tasks_router)
@@ -38,3 +40,13 @@ def register_page(request: Request):
 @app.get('/dashboard', response_class=HTMLResponse)
 def dashboard_page(request: Request):
     return templates.TemplateResponse('dashboard.html', {'request': request})
+
+
+@app.get('/canvas', response_class=HTMLResponse)
+def canvas_page(request: Request):
+    return templates.TemplateResponse('canvas.html', {'request': request})
+
+
+@app.get('/editaccount', response_class=HTMLResponse)
+def edit_account_page(request: Request):
+    return templates.TemplateResponse('editaccount.html', {'request': request})

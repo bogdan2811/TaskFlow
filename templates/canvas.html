@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview - TaskFlow</title>
+    <style>
+        :root {
+            --bg: #0d0e22;
+            --surface: rgba(13, 17, 34, 0.62);
+            --surface-soft: rgba(255, 255, 255, 0.035);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --line: rgba(255, 255, 255, 0.07);
+            --accent: #8b5cf6;
+            --teal: #06b6d4;
+            --amber: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.26) 0%, transparent 58%),
+                        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.34) 0%, transparent 62%),
+                        var(--bg);
+            background-attachment: fixed;
+            color: var(--text);
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+        }
+
+        .topbar {
+            height: 64px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(13, 17, 34, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.15rem;
+        }
+
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: #ffffff;
+            font-weight: 900;
+        }
+
+        .btn {
+            min-height: 36px;
+            padding: 0 16px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: #ffffff;
+            font-weight: 750;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn.secondary {
+            color: #d8b4fe;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .page {
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .toolbar {
+            display: grid;
+            grid-template-columns: 1fr 220px 220px 180px;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .title p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .input,
+        .select {
+            min-height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: 9px 12px;
+            outline: none;
+        }
+
+        .select option {
+            background: #0d1122;
+            color: #ffffff;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(230px, 1fr));
+            gap: 16px;
+            min-height: calc(100vh - 154px);
+            overflow: auto;
+        }
+
+        .column {
+            min-width: 0;
+            background: var(--surface);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .column-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .column-header h2 {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .count {
+            min-width: 28px;
+            height: 24px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .cards {
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+            align-content: start;
+            overflow: auto;
+        }
+
+        .task-card {
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: var(--surface-soft);
+            padding: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .task-card h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .task-card p {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .card-footer {
+            display: grid;
+            gap: 8px;
+            padding-top: 2px;
+        }
+
+        .status-select {
+            width: 100%;
+            min-height: 34px;
+            border-radius: 9px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: 7px 10px;
+            outline: none;
+        }
+
+        .status-select option {
+            background: #0d1122;
+            color: #ffffff;
+        }
+
+        .pill {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .pri-low {
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .pri-medium {
+            background: var(--teal);
+            color: #ffffff;
+        }
+
+        .pri-high {
+            background: var(--amber);
+            color: #ffffff;
+        }
+
+        .pri-critical {
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 0.88rem;
+            padding: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .status {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            z-index: 20;
+            max-width: min(560px, calc(100vw - 28px));
+            padding: 12px 18px;
+            border-radius: 10px;
+            color: #ffffff;
+            background: rgba(239, 68, 68, 0.85);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 1040px) {
+            .board {
+                grid-template-columns: repeat(2, minmax(230px, 1fr));
+            }
+        }
+
+        @media (max-width: 680px) {
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .page {
+                padding: 14px;
+            }
+
+            .toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .board {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">T</div>
+            <span>TaskFlow</span>
+        </div>
+        <a class="btn secondary" href="/dashboard">Dashboard</a>
+    </header>
+
+    <main class="page">
+        <section class="toolbar">
+            <div class="title">
+                <h1>Overview</h1>
+                <p id="summary">Choose a conversation to view its task board</p>
+            </div>
+            <select id="chatFilter" class="select">
+                <option value="">All conversations</option>
+            </select>
+            <input id="searchInput" class="input" type="search" placeholder="Search tasks">
+            <select id="priorityFilter" class="select">
+                <option value="">All priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+        </section>
+
+        <section class="board" id="board"></section>
+    </main>
+
+    <div id="status" class="status hidden"></div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        const columns = [
+            ['todo', 'To Be Done'],
+            ['in_progress', 'Currently Working'],
+            ['blocked', 'Blocked'],
+            ['done', 'Done']
+        ];
+
+        const state = {
+            user: null,
+            tasks: [],
+            users: [],
+            chats: []
+        };
+
+        const el = {
+            board: document.getElementById('board'),
+            chatFilter: document.getElementById('chatFilter'),
+            searchInput: document.getElementById('searchInput'),
+            priorityFilter: document.getElementById('priorityFilter'),
+            summary: document.getElementById('summary'),
+            status: document.getElementById('status')
+        };
+
+        async function api(path) {
+            const response = await fetch(path, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                const detail = data.detail || {};
+                throw new Error(detail.error || data.error || response.statusText || 'Request failed');
+            }
+            return data;
+        }
+
+        function showError(message) {
+            el.status.textContent = message;
+            el.status.classList.remove('hidden');
+            clearTimeout(showError.timer);
+            showError.timer = setTimeout(() => el.status.classList.add('hidden'), 3200);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDate(value) {
+            if (!value) return 'No deadline';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function userName(userId) {
+            const user = state.users.find(item => item.id === userId);
+            return user ? user.username : `User ${userId}`;
+        }
+
+        function chatName(chatId) {
+            const chat = state.chats.find(item => item.id === chatId);
+            return chat ? chat.name : `Chat ${chatId}`;
+        }
+
+        function filteredTasks() {
+            const query = el.searchInput.value.trim().toLowerCase();
+            const priority = el.priorityFilter.value;
+            const chatId = el.chatFilter.value;
+            return state.tasks.filter(task => {
+                const haystack = [
+                    task.title,
+                    task.description,
+                    task.category,
+                    chatName(task.chatId),
+                    task.assigneeIds.map(userName).join(' ')
+                ].join(' ').toLowerCase();
+                return (!query || haystack.includes(query))
+                    && (!priority || task.priority === priority)
+                    && (!chatId || String(task.chatId) === chatId);
+            });
+        }
+
+        function render() {
+            const tasks = filteredTasks();
+            const selectedChatName = el.chatFilter.value ? chatName(Number(el.chatFilter.value)) : 'All conversations';
+            el.summary.textContent = `${selectedChatName} - ${tasks.length} task${tasks.length === 1 ? '' : 's'} visible`;
+            el.board.innerHTML = columns.map(([status, label]) => {
+                const columnTasks = tasks
+                    .filter(task => task.status === status)
+                    .sort((a, b) => {
+                        const priorityRank = { critical: 1, high: 2, medium: 3, low: 4 };
+                        const rankA = priorityRank[a.priority] || 3;
+                        const rankB = priorityRank[b.priority] || 3;
+                        if (rankA !== rankB) return rankA - rankB;
+                        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+                        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+                        return dateA - dateB;
+                    });
+                return `
+                    <section class="column">
+                        <div class="column-header">
+                            <h2>${label}</h2>
+                            <span class="count">${columnTasks.length}</span>
+                        </div>
+                        <div class="cards">
+                            ${columnTasks.length ? columnTasks.map(task => taskCard(task)).join('') : '<div class="empty">No tasks</div>'}
+                        </div>
+                    </section>
+                `;
+            }).join('');
+        }
+
+        function renderChatFilter() {
+            el.chatFilter.innerHTML = `
+                <option value="">All conversations</option>
+                ${state.chats.map(chat => `<option value="${chat.id}">${escapeHtml(chat.name)}</option>`).join('')}
+            `;
+        }
+
+        function taskCard(task) {
+            const assignees = task.assigneeIds.map(userName).join(', ') || 'None';
+            const canEdit = task.creatorId === state.user?.id;
+            return `
+                <article class="task-card">
+                    <div class="meta">
+                        <span class="pill pri-${escapeHtml(task.priority || 'medium')}">${escapeHtml(task.priority || 'medium')}</span>
+                        ${task.category ? `<span class="pill">${escapeHtml(task.category)}</span>` : ''}
+                    </div>
+                    <h3>${escapeHtml(task.title)}</h3>
+                    <p>${escapeHtml(task.description || 'No description')}</p>
+                    <div class="muted">Chat: ${escapeHtml(chatName(task.chatId))}</div>
+                    <div class="muted">Due: ${escapeHtml(formatDate(task.dueDate))}</div>
+                    <div class="muted">Assignees: ${escapeHtml(assignees)}</div>
+                    <div class="card-footer">
+                        ${canEdit ? `
+                            <select class="status-select" data-task-status="${task.id}">
+                                ${columns.map(([value, label]) => `<option value="${value}" ${task.status === value ? 'selected' : ''}>${label}</option>`).join('')}
+                            </select>
+                        ` : `<div class="muted">Status can be changed by the task creator.</div>`}
+                    </div>
+                </article>
+            `;
+        }
+
+        async function updateTaskStatus(taskId, status) {
+            const task = state.tasks.find(item => item.id === taskId);
+            if (!task || task.creatorId !== state.user?.id) return;
+            const previousStatus = task.status;
+            task.status = status;
+            render();
+
+            try {
+                const response = await fetch(`/api/tasks/${task.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        version: task.version,
+                        status
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    const detail = data.detail || {};
+                    throw new Error(detail.error || data.error || response.statusText || 'Status update failed');
+                }
+                const index = state.tasks.findIndex(item => item.id === task.id);
+                if (index >= 0) {
+                    state.tasks[index] = data.task;
+                }
+                render();
+            } catch (error) {
+                task.status = previousStatus;
+                render();
+                showError(error.message);
+            }
+        }
+
+        async function boot() {
+            try {
+                const me = await api('/api/auth/me');
+                const [tasksData, usersData, chatsData] = await Promise.all([
+                    api('/api/tasks'),
+                    api('/api/auth/users'),
+                    api('/api/chats')
+                ]);
+                state.user = me.user;
+                state.tasks = tasksData.tasks || [];
+                state.users = usersData || [];
+                state.chats = chatsData.chats || [];
+                renderChatFilter();
+                render();
+            } catch (error) {
+                if (error.message.includes('Invalid') || error.message.includes('expired') || error.message.includes('User not found')) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                    return;
+                }
+                showError(error.message);
+            }
+        }
+
+        el.searchInput.addEventListener('input', render);
+        el.priorityFilter.addEventListener('change', render);
+        el.chatFilter.addEventListener('change', render);
+        el.board.addEventListener('change', event => {
+            const select = event.target.closest('[data-task-status]');
+            if (!select) return;
+            updateTaskStatus(Number(select.dataset.taskStatus), select.value);
+        });
+        boot();
+    </script>
+</body>
+
+</html>
