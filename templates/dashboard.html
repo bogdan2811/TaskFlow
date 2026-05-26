@@ -7,20 +7,23 @@
     <title>TaskFlow App</title>
     <style>
         :root {
-            --bg: #eef2f7;
-            --surface: #ffffff;
-            --surface-soft: #f8fafc;
-            --surface-strong: #e2e8f0;
-            --text: #172033;
-            --muted: #64748b;
-            --line: #d7dee8;
-            --accent: #2563eb;
-            --accent-soft: #dbeafe;
-            --teal: #0f766e;
-            --amber: #b45309;
-            --danger: #b91c1c;
-            --danger-soft: #fee2e2;
-            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            --bg: #0d0e22;
+            --surface: rgba(13, 17, 34, 0.45);
+            --surface-soft: rgba(255, 255, 255, 0.03);
+            --surface-strong: rgba(255, 255, 255, 0.07);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --line: rgba(255, 255, 255, 0.06);
+            --accent: #8b5cf6;
+            --accent-soft: rgba(139, 92, 246, 0.15);
+            --accent-hover: #a78bfa;
+            --teal: #06b6d4;
+            --amber: #f59e0b;
+            --danger: #ef4444;
+            --danger-soft: rgba(239, 68, 68, 0.15);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+            --glass-blur: blur(20px);
         }
 
         * {
@@ -30,9 +33,30 @@
         body {
             margin: 0;
             min-height: 100vh;
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: var(--bg);
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.32) 0%, transparent 60%), 
+                        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.38) 0%, transparent 65%), 
+                        var(--bg);
+            background-attachment: fixed;
             color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Sleek custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
         }
 
         button,
@@ -45,6 +69,7 @@
         button {
             border: 0;
             cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         button:disabled,
@@ -52,7 +77,7 @@
         select:disabled,
         textarea:disabled {
             cursor: not-allowed;
-            opacity: 0.55;
+            opacity: 0.45;
         }
 
         .hidden {
@@ -61,71 +86,116 @@
 
         .topbar {
             height: 64px;
-            padding: 0 20px;
+            padding: 0 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--surface);
-            border-bottom: 1px solid var(--line);
+            background: rgba(13, 17, 34, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            letter-spacing: -0.025em;
         }
 
         .brand-mark {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: 10px;
             display: grid;
             place-items: center;
-            background: var(--accent);
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
             color: #ffffff;
             font-weight: 900;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
         }
 
         .top-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             color: var(--muted);
             font-size: 0.92rem;
         }
 
         .btn {
             min-height: 36px;
-            padding: 0 13px;
-            border-radius: 7px;
-            background: var(--accent);
+            padding: 0 18px;
+            border-radius: 20px; /* Modern Pill shapes */
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
             color: #ffffff;
             font-weight: 700;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+            filter: brightness(1.1);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .btn.secondary {
-            color: var(--text);
-            background: var(--surface-strong);
+            color: #d8b4fe;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: none;
+        }
+        
+        .btn.secondary:hover:not(:disabled) {
+            background: rgba(139, 92, 246, 0.16);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
         }
 
         .btn.ghost {
-            color: var(--accent);
+            color: #c084fc;
             background: transparent;
-            border: 1px solid var(--line);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .btn.ghost:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
         }
 
         .btn.danger {
-            color: #ffffff;
-            background: var(--danger);
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: none;
+        }
+
+        .btn.danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
         }
 
         .btn.small {
             min-height: 30px;
-            padding: 0 10px;
+            padding: 0 12px;
             font-size: 0.82rem;
+            border-radius: 15px;
         }
 
         .auth-page {
@@ -139,56 +209,80 @@
             width: min(960px, 100%);
             display: grid;
             grid-template-columns: 1fr 1fr;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 8px;
+            background: rgba(13, 17, 34, 0.6);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 16px;
             box-shadow: var(--shadow);
             overflow: hidden;
         }
 
         .auth-side {
-            padding: 34px;
-            background: #102033;
+            padding: 48px;
+            background: linear-gradient(135deg, #1e1b4b, #311042);
             color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .auth-side::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+            pointer-events: none;
         }
 
         .auth-side h1 {
-            margin: 0 0 12px;
-            font-size: 2rem;
-            letter-spacing: 0;
+            margin: 0 0 16px;
+            font-size: 2.25rem;
+            letter-spacing: -0.03em;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .auth-side p {
             margin: 0;
             color: #cbd5e1;
             line-height: 1.6;
+            font-size: 0.95rem;
         }
 
         .auth-forms {
-            padding: 28px;
+            padding: 40px;
             display: grid;
-            gap: 24px;
+            gap: 32px;
+            background: rgba(255, 255, 255, 0.01);
         }
 
         .form-block {
             display: grid;
-            gap: 12px;
+            gap: 16px;
         }
 
         .form-block h2 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
         }
 
         .field {
             display: grid;
-            gap: 6px;
+            gap: 8px;
         }
 
         .field label {
             color: var(--muted);
             font-size: 0.82rem;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .input,
@@ -196,16 +290,17 @@
         .select {
             width: 100%;
             min-height: 38px;
-            border-radius: 7px;
-            border: 1px solid var(--line);
-            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
             color: var(--text);
-            padding: 9px 11px;
+            padding: 9px 14px;
             outline: none;
+            transition: all 0.2s ease;
         }
 
         .textarea {
-            min-height: 76px;
+            min-height: 80px;
             resize: vertical;
         }
 
@@ -213,41 +308,83 @@
         .textarea:focus,
         .select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .select option {
+            background: #0d1122;
+            color: #ffffff;
         }
 
         .check-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             color: var(--muted);
             font-size: 0.9rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .check-row input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 15px;
+            height: 15px;
         }
 
         .app {
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 64px);
+            max-height: calc(100vh - 64px);
             display: grid;
-            grid-template-columns: 280px minmax(360px, 1fr) 360px;
-            gap: 1px;
-            background: var(--line);
+            grid-template-columns: 280px 1fr 0px;
+            gap: 0px; /* Gap will toggle to 20px when open */
+            background: transparent;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .app.details-open {
+            grid-template-columns: 280px 1fr 360px;
+            gap: 20px;
+        }
+
+        .details-panel {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .app.details-open .details-panel {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
         }
 
         .panel {
             min-width: 0;
-            background: var(--surface);
+            background: rgba(13, 17, 34, 0.55);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: var(--glass-border);
+            border-radius: 16px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
         .panel-header {
             min-height: 60px;
-            padding: 14px;
+            padding: 16px 20px;
             border-bottom: 1px solid var(--line);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.01);
         }
 
         .panel-title {
@@ -256,12 +393,14 @@
 
         .panel-title h2 {
             margin: 0;
-            font-size: 1rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
         }
 
         .panel-title span {
             display: block;
-            margin-top: 2px;
+            margin-top: 3px;
             color: var(--muted);
             font-size: 0.78rem;
             white-space: nowrap;
@@ -273,18 +412,19 @@
             min-height: 0;
             flex: 1;
             overflow: auto;
-            padding: 14px;
+            padding: 20px;
         }
 
         .stack {
             display: grid;
-            gap: 10px;
+            gap: 12px;
+            align-content: start;
         }
 
         .inline {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .inline.wrap {
@@ -294,37 +434,47 @@
         .split {
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 8px;
+            gap: 10px;
         }
 
         .chat-list {
             display: grid;
-            gap: 8px;
+            gap: 10px;
         }
 
         .chat-item {
             width: 100%;
             text-align: left;
-            padding: 10px;
-            border-radius: 8px;
-            background: var(--surface-soft);
-            border: 1px solid transparent;
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .chat-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
         }
 
         .chat-item.active {
-            border-color: var(--accent);
-            background: var(--accent-soft);
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(139, 92, 246, 0.12);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
         }
 
         .chat-name {
-            font-weight: 800;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #ffffff;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .chat-meta {
-            margin-top: 4px;
+            margin-top: 5px;
             color: var(--muted);
             font-size: 0.8rem;
             overflow: hidden;
@@ -336,18 +486,18 @@
             min-height: 0;
             flex: 1;
             overflow: auto;
-            padding: 14px;
-            background: #f4f7fb;
+            padding: 20px;
+            background: rgba(8, 9, 19, 0.25);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .message {
             max-width: min(78%, 680px);
             align-self: flex-start;
             display: grid;
-            gap: 5px;
+            gap: 6px;
         }
 
         .message.mine {
@@ -355,23 +505,28 @@
         }
 
         .bubble {
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: #ffffff;
-            border: 1px solid var(--line);
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             white-space: pre-wrap;
             overflow-wrap: anywhere;
+            color: #e2e8f0;
+            line-height: 1.5;
+            font-size: 0.92rem;
         }
 
         .message.mine .bubble {
             color: #ffffff;
-            background: var(--accent);
-            border-color: var(--accent);
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.25);
         }
 
         .message.selected .bubble {
-            outline: 3px solid rgba(245, 158, 11, 0.3);
+            outline: 2px solid rgba(245, 158, 11, 0.5);
+            outline-offset: 2px;
         }
 
         .message-meta {
@@ -381,60 +536,109 @@
             gap: 8px;
             color: var(--muted);
             font-size: 0.76rem;
+            padding: 0 4px;
+        }
+
+        .message-time {
+            opacity: 0;
+            margin-left: auto;
+            transition: opacity 0.25s ease;
+        }
+
+        .message:hover .message-time {
+            opacity: 1;
         }
 
         .message-actions {
             display: flex;
             gap: 6px;
             justify-content: flex-end;
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+            height: 30px;
+            margin-top: 6px;
+            pointer-events: auto;
+        }
+
+        /* Consecutive messages styling */
+        .message.consecutive {
+            margin-top: -8px; /* Pull them much closer */
+        }
+
+        .message.consecutive .sender-name {
+            display: none;
+        }
+
+        .message.consecutive:not(:hover) .message-meta {
+            display: none;
         }
 
         .composer {
-            padding: 12px;
+            padding: 16px;
             border-top: 1px solid var(--line);
-            background: var(--surface);
+            background: rgba(13, 17, 34, 0.5);
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 8px;
+            gap: 10px;
         }
 
         .status {
             position: fixed;
             left: 50%;
-            bottom: 18px;
+            bottom: 24px;
             transform: translateX(-50%);
             z-index: 20;
             max-width: min(560px, calc(100vw - 28px));
-            padding: 10px 14px;
-            border-radius: 8px;
+            padding: 12px 18px;
+            border-radius: 10px;
             color: #ffffff;
-            background: #172033;
-            box-shadow: var(--shadow);
+            background: #0f101f;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
             font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .status.error {
-            background: var(--danger);
+            background: rgba(239, 68, 68, 0.85);
+            border-color: rgba(239, 68, 68, 0.4);
         }
 
         .empty {
             color: var(--muted);
             font-size: 0.92rem;
-            padding: 16px;
-            border: 1px dashed var(--line);
-            border-radius: 8px;
-            background: var(--surface-soft);
+            padding: 20px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.01);
+            text-align: center;
         }
 
         .member-row,
         .task-row,
         .user-row {
-            padding: 9px;
-            border-radius: 8px;
-            background: var(--surface-soft);
-            border: 1px solid var(--line);
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             display: grid;
-            gap: 5px;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .member-row:hover,
+        .task-row:hover,
+        .user-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
         .member-row .line,
@@ -443,12 +647,132 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
+        }
+
+        .task-deadline {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--teal);
+            background: rgba(6, 182, 212, 0.08);
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            width: fit-content;
+        }
+
+        .task-deadline.no-deadline {
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .task-desc {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-top: 2px;
+            margin-bottom: 2px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .task-row .task-details {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            margin-top: 0;
+            display: grid;
+            gap: 4px;
+        }
+
+        .task-row:hover .task-details {
+            max-height: 120px;
+            opacity: 1;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            opacity: 0.9;
+        }
+
+        .header-icon-btn {
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            gap: 0;
+            white-space: nowrap;
+        }
+
+        .header-icon-btn .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        .header-icon-btn:hover {
+            padding: 0 10px;
+            border-radius: 16px;
+            gap: 6px;
+        }
+
+        #showCreateChatBtn:hover {
+            width: 108px;
+        }
+
+        #refreshBtn:hover {
+            width: 90px;
+        }
+
+        .header-icon-btn .btn-text {
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .header-icon-btn:hover .btn-text {
+            max-width: 80px;
+            opacity: 1;
         }
 
         .name {
             min-width: 0;
-            font-weight: 800;
+            font-weight: 700;
+            color: #ffffff;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -460,70 +784,124 @@
         }
 
         .pill {
-            padding: 3px 7px;
+            padding: 4px 10px;
             border-radius: 999px;
-            background: var(--surface-strong);
-            color: var(--text);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
             font-size: 0.74rem;
-            font-weight: 800;
+            font-weight: 700;
             white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
 
         .pill.live {
             color: #ffffff;
             background: var(--teal);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.35);
         }
 
         .pill.warn {
             color: #ffffff;
             background: var(--amber);
+            box-shadow: 0 0 10px rgba(245, 158, 17, 0.35);
+        }
+
+        .pill.pri-low {
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.2);
+            box-shadow: 0 0 8px rgba(148, 163, 184, 0.15);
+        }
+
+        .pill.pri-medium {
+            color: #ffffff;
+            background: var(--teal);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.35);
+        }
+
+        .pill.pri-high {
+            color: #ffffff;
+            background: var(--amber);
+            box-shadow: 0 0 10px rgba(245, 158, 17, 0.35);
+        }
+
+        .pill.pri-critical {
+            color: #ffffff;
+            background: var(--danger);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
         }
 
         .checkbox-list {
             max-height: 130px;
             overflow: auto;
-            border: 1px solid var(--line);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 8px;
-            padding: 8px;
+            padding: 10px;
             display: grid;
-            gap: 7px;
-            background: #ffffff;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .tabs {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            padding: 8px;
-            gap: 8px;
+            padding: 4px;
+            gap: 4px;
+            background: rgba(0, 0, 0, 0.15);
             border-bottom: 1px solid var(--line);
         }
 
         .tab {
-            min-height: 34px;
-            border-radius: 7px;
+            min-height: 36px;
+            border-radius: 20px; /* Rounded pill tabs */
             color: var(--muted);
             background: transparent;
-            font-weight: 800;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
 
         .tab.active {
-            color: var(--text);
-            background: var(--surface-strong);
+            color: #ffffff;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
         }
 
         @media (max-width: 1120px) {
             .app {
-                grid-template-columns: 250px 1fr;
+                grid-template-columns: 250px 1fr !important;
+                position: relative;
+                gap: 16px;
+                padding: 16px;
             }
 
             .details-panel {
-                display: none;
+                position: absolute !important;
+                right: 16px;
+                top: 16px;
+                bottom: 16px;
+                width: 340px;
+                z-index: 100;
+                background: rgba(10, 11, 23, 0.96) !important;
+                backdrop-filter: blur(25px) !important;
+                -webkit-backdrop-filter: blur(25px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+                transform: translateX(120%) scale(1) !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                display: flex !important;
+            }
+
+            .app.details-open .details-panel {
+                transform: translateX(0) !important;
             }
         }
 
         @media (max-width: 760px) {
             .topbar {
-                padding: 0 12px;
+                padding: 0 16px;
             }
 
             .auth-panel {
@@ -531,12 +909,14 @@
             }
 
             .auth-side {
-                padding: 24px;
+                padding: 32px;
             }
 
             .app {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr !important;
                 min-height: auto;
+                padding: 12px;
+                gap: 16px;
             }
 
             .chats-panel {
@@ -548,8 +928,11 @@
             }
 
             .details-panel {
-                display: flex;
-                min-height: 70vh;
+                right: 12px;
+                top: 12px;
+                bottom: 12px;
+                width: calc(100% - 24px) !important;
+                background: rgba(10, 11, 23, 0.98) !important;
             }
 
             .message {
@@ -626,10 +1009,30 @@
                     <h2>Chats</h2>
                     <span id="chatCountLabel"></span>
                 </div>
-                <button id="refreshBtn" class="btn ghost small" type="button">Refresh</button>
+                <div class="inline" style="gap: 6px;">
+                    <button id="showCreateChatBtn" class="btn ghost small header-icon-btn" type="button" title="New Chat">
+                        <span class="btn-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </span>
+                        <span class="btn-text">New Chat</span>
+                    </button>
+                    <button id="refreshBtn" class="btn ghost small header-icon-btn" type="button" title="Refresh">
+                        <span class="btn-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M1 20v-6h6"></path>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </span>
+                        <span class="btn-text">Refresh</span>
+                    </button>
+                </div>
             </div>
             <div class="panel-body stack">
-                <form id="createChatForm" class="stack">
+                <form id="createChatForm" class="stack hidden">
                     <div class="field">
                         <label for="newChatName">New chat</label>
                         <input id="newChatName" class="input" type="text" placeholder="Project chat">
@@ -651,59 +1054,82 @@
                     <span id="activeChatMeta"></span>
                 </div>
                 <div class="inline">
-                    <button id="leaveChatBtn" class="btn ghost small" type="button" disabled>Leave</button>
+                    <button id="toggleDetailsBtn" class="btn ghost small hidden" type="button" aria-label="Toggle details">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div id="messages" class="messages">
                 <div class="empty">No chat selected</div>
             </div>
             <form id="messageForm" class="composer">
-                <input id="messageInput" class="input" type="text" placeholder="Message" disabled>
+                <input id="messageInput" class="input" type="text" placeholder="Message" autocomplete="off" disabled>
                 <button id="sendMessageBtn" class="btn" type="submit" disabled>Send</button>
             </form>
         </section>
 
         <section class="panel details-panel">
-            <div class="tabs">
-                <button id="membersTab" class="tab active" type="button">Members</button>
-                <button id="tasksTab" class="tab" type="button">Tasks</button>
+            <div class="panel-header" style="padding: 10px 14px; min-height: auto; border-bottom: 1px solid var(--line);">
+                <div class="tabs" style="flex: 1; border-bottom: none; padding: 0;">
+                    <button id="tasksTab" class="tab active" type="button">Tasks</button>
+                    <button id="membersTab" class="tab" type="button">Members</button>
+                </div>
+                <button id="leaveChatBtn" class="btn danger small hidden" type="button" style="margin-left: 10px;" disabled>Leave</button>
             </div>
 
-            <div id="membersPane" class="panel-body stack">
-                <form id="renameChatForm" class="stack">
-                    <div class="field">
-                        <label for="renameChatName">Chat name</label>
-                        <div class="split">
-                            <input id="renameChatName" class="input" type="text" disabled>
-                            <button id="renameChatBtn" class="btn secondary" type="submit" disabled>Save</button>
-                        </div>
+            <div id="membersPane" class="panel-body stack hidden">
+                <div id="chatAdminSection" class="settings-card stack hidden">
+                    <div class="settings-header">
+                        <span class="settings-title">Chat Administration</span>
                     </div>
-                </form>
+                    
+                    <form id="renameChatForm" class="stack">
+                        <div class="field">
+                            <label for="renameChatName" class="muted">Rename Chat</label>
+                            <div class="split">
+                                <input id="renameChatName" class="input" type="text" placeholder="Enter chat name..." disabled>
+                                <button id="renameChatBtn" class="btn secondary small" type="submit" disabled>Save</button>
+                            </div>
+                        </div>
+                    </form>
 
-                <div class="stack">
-                    <div class="inline wrap">
-                        <button id="deleteChatBtn" class="btn danger small" type="button" disabled>Delete chat</button>
+                    <form id="addMemberForm" class="stack">
+                        <div class="field">
+                            <label for="addMemberSelect" class="muted">Add Member</label>
+                            <div class="split">
+                                <select id="addMemberSelect" class="select" disabled></select>
+                                <button id="addMemberBtn" class="btn secondary small" type="submit" disabled>Add</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="field" style="margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px;">
+                        <button id="deleteChatBtn" class="btn danger small" type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" disabled>
+                            <span></span> Delete Chat
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stack" style="margin-top: 8px;">
+                    <div class="settings-header" style="margin-bottom: 4px;">
+                        <span class="settings-title">Chat Members</span>
                     </div>
                     <div id="participantsList" class="stack"></div>
                 </div>
-
-                <form id="addMemberForm" class="stack">
-                    <div class="field">
-                        <label for="addMemberSelect">Add member</label>
-                        <div class="split">
-                            <select id="addMemberSelect" class="select" disabled></select>
-                            <button id="addMemberBtn" class="btn secondary" type="submit" disabled>Add</button>
-                        </div>
-                    </div>
-                </form>
             </div>
 
-            <div id="tasksPane" class="panel-body stack hidden">
-                <form id="taskForm" class="stack">
-                    <div class="inline wrap">
-                        <span id="taskFormMode" class="pill">New task</span>
-                        <button id="newTaskBtn" class="btn ghost small" type="button" disabled>New task</button>
-                    </div>
+            <div id="tasksPane" class="panel-body stack">
+                <div id="tasksList" class="stack"></div>
+
+                <div class="inline wrap" style="justify-content: center; margin-top: 10px; margin-bottom: 10px;">
+                    <button id="showTaskFormBtn" class="btn ghost small" type="button" disabled>+ New Task</button>
+                </div>
+
+                <form id="taskForm" class="stack hidden">
                     <div class="field">
                         <label>Source message</label>
                         <div class="split">
@@ -757,7 +1183,6 @@
                     </div>
                     <button id="createTaskBtn" class="btn" type="submit" disabled>Create task</button>
                 </form>
-                <div id="tasksList" class="stack"></div>
             </div>
         </section>
     </main>
@@ -779,7 +1204,7 @@
             editingTask: null,
             ws: null,
             socketReady: false,
-            activePane: 'members'
+            activePane: 'tasks'
         };
 
         const el = {
@@ -791,6 +1216,7 @@
             loginForm: document.getElementById('loginForm'),
             registerForm: document.getElementById('registerForm'),
             refreshBtn: document.getElementById('refreshBtn'),
+            showCreateChatBtn: document.getElementById('showCreateChatBtn'),
             chatCountLabel: document.getElementById('chatCountLabel'),
             createChatForm: document.getElementById('createChatForm'),
             createMembersList: document.getElementById('createMembersList'),
@@ -799,6 +1225,7 @@
             activeChatName: document.getElementById('activeChatName'),
             activeChatMeta: document.getElementById('activeChatMeta'),
             leaveChatBtn: document.getElementById('leaveChatBtn'),
+            toggleDetailsBtn: document.getElementById('toggleDetailsBtn'),
             messages: document.getElementById('messages'),
             messageForm: document.getElementById('messageForm'),
             messageInput: document.getElementById('messageInput'),
@@ -816,8 +1243,7 @@
             addMemberSelect: document.getElementById('addMemberSelect'),
             addMemberBtn: document.getElementById('addMemberBtn'),
             taskForm: document.getElementById('taskForm'),
-            taskFormMode: document.getElementById('taskFormMode'),
-            newTaskBtn: document.getElementById('newTaskBtn'),
+            showTaskFormBtn: document.getElementById('showTaskFormBtn'),
             selectedMessageLabel: document.getElementById('selectedMessageLabel'),
             clearTaskSourceBtn: document.getElementById('clearTaskSourceBtn'),
             taskTitle: document.getElementById('taskTitle'),
@@ -978,8 +1404,10 @@
             renderMembers();
             renderTaskForm();
             renderTasks();
+            el.taskForm.classList.add('hidden');
+            el.showTaskFormBtn.textContent = '+ New Task';
 
-            if (showToast) showStatus('Chat opened');
+            el.appPage.classList.add('details-open');
         }
 
         function clearSelection() {
@@ -997,6 +1425,9 @@
             renderMembers();
             renderTaskForm();
             renderTasks();
+            el.taskForm.classList.add('hidden');
+            el.showTaskFormBtn.textContent = '+ New Task';
+            el.appPage.classList.remove('details-open');
         }
 
         function renderActiveChat() {
@@ -1007,8 +1438,10 @@
                 : '';
             el.renameChatName.value = hasChat ? state.selectedChat.name : '';
             el.messageInput.disabled = !hasChat;
-            el.sendMessageBtn.disabled = !hasChat;
+            el.sendMessageBtn.disabled = !hasChat || !el.messageInput.value.trim();
             el.leaveChatBtn.disabled = !hasChat;
+            el.leaveChatBtn.classList.toggle('hidden', !hasChat);
+            el.toggleDetailsBtn.classList.toggle('hidden', !hasChat);
 
             const isOwner = hasChat && state.selectedChat.createdBy === state.user?.id;
             el.renameChatName.disabled = !isOwner;
@@ -1016,6 +1449,11 @@
             el.deleteChatBtn.disabled = !isOwner;
             el.addMemberSelect.disabled = !isOwner;
             el.addMemberBtn.disabled = !isOwner;
+
+            const adminSection = document.getElementById('chatAdminSection');
+            if (adminSection) {
+                adminSection.classList.toggle('hidden', !isOwner);
+            }
         }
 
         function renderMessages() {
@@ -1029,14 +1467,18 @@
             }
 
             const ownerId = state.selectedChat.createdBy;
+            let lastSenderId = null;
             el.messages.innerHTML = state.messages.map(message => {
                 const isMine = message.senderId === state.user.id;
                 const canDelete = isMine || ownerId === state.user.id;
                 const selected = state.selectedMessage?.id === message.id ? 'selected' : '';
+                const isConsecutive = message.senderId === lastSenderId;
+                lastSenderId = message.senderId;
                 return `
-                    <article class="message ${isMine ? 'mine' : ''} ${selected}" data-message-id="${message.id}">
+                    <article class="message ${isMine ? 'mine' : ''} ${selected} ${isConsecutive ? 'consecutive' : ''}" data-message-id="${message.id}">
                         <div class="message-meta">
-                            <span>${escapeHtml(userName(message.senderId))} - ${formatDate(message.sentAt)}</span>
+                            <span class="sender-name">${escapeHtml(userName(message.senderId))}</span>
+                            <span class="message-time">${formatDate(message.sentAt)}</span>
                         </div>
                         <div class="bubble">${escapeHtml(message.content)}</div>
                         <div class="message-actions">
@@ -1097,12 +1539,11 @@
                 el.taskStatus,
                 el.taskCategorySelect,
                 el.taskNewCategory,
-                el.createTaskBtn
+                el.createTaskBtn,
+                el.showTaskFormBtn
             ];
             controls.forEach(control => control.disabled = !enabled);
             renderCategoryControls(enabled);
-            el.taskFormMode.textContent = editing ? `Editing task #${state.editingTask.id}` : 'New task';
-            el.newTaskBtn.disabled = !state.selectedChat || !editing;
             el.createTaskBtn.textContent = editing ? 'Save task' : 'Create task';
 
             el.selectedMessageLabel.className = hasSourceMessage ? 'member-row' : 'empty';
@@ -1205,6 +1646,10 @@
             renderMessages();
             renderTaskForm();
 
+            el.taskForm.classList.remove('hidden');
+            el.showTaskFormBtn.textContent = 'Cancel';
+            el.taskForm.scrollIntoView({ behavior: 'smooth' });
+
             el.taskCategorySelect.value = task.category || '';
             renderCategoryControls(true);
             Array.from(document.querySelectorAll('[data-task-assignee]')).forEach(input => {
@@ -1217,21 +1662,54 @@
                 el.tasksList.innerHTML = '<div class="empty">No chat selected</div>';
                 return;
             }
-            el.tasksList.innerHTML = state.tasks.length
-                ? state.tasks.map(task => {
+            const priorityRank = {
+                'critical': 1,
+                'high': 2,
+                'medium': 3,
+                'low': 4
+            };
+            const sortedTasks = [...state.tasks].sort((a, b) => {
+                const rankA = priorityRank[(a.priority || 'medium').trim().toLowerCase()] || 3;
+                const rankB = priorityRank[(b.priority || 'medium').trim().toLowerCase()] || 3;
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+                const catA = (a.category || '').trim().toLowerCase();
+                const catB = (b.category || '').trim().toLowerCase();
+                if (catA !== catB) {
+                    return catA.localeCompare(catB);
+                }
+                const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+                const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+                return dateA - dateB;
+            });
+            el.tasksList.innerHTML = sortedTasks.length
+                ? sortedTasks.map(task => {
                     const canEdit = task.creatorId === state.user.id;
+                    const priorityClass = `pri-${(task.priority || 'medium').trim().toLowerCase()}`;
+                    const hasDeadline = Boolean(task.dueDate);
+                    const deadlineClass = hasDeadline ? 'task-deadline' : 'task-deadline no-deadline';
+                    const deadlineText = hasDeadline ? formatDate(task.dueDate) : 'No deadline';
+                    const descText = task.description ? escapeHtml(task.description) : 'No description';
                     return `
                     <div class="task-row">
                         <div class="line">
                             <div class="name">${escapeHtml(task.title)}</div>
                             <div class="inline">
-                                <span class="pill warn">${escapeHtml(task.priority)}</span>
+                                <span class="pill ${priorityClass}">${escapeHtml(task.priority)}</span>
                                 ${canEdit ? `<button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>` : ''}
                             </div>
                         </div>
-                        <div class="muted">Category: ${task.category ? escapeHtml(task.category) : 'None'}</div>
-                        <div class="muted">${escapeHtml(task.status)} - ${task.dueDate ? formatDate(task.dueDate) : 'No deadline'}</div>
-                        <div class="muted">Assignees: ${task.assigneeIds.map(userName).map(escapeHtml).join(', ')}</div>
+                        <div class="${deadlineClass}">
+                            <span class="deadline-icon">📅</span>
+                            <span class="deadline-text">${deadlineText}</span>
+                        </div>
+                        <div class="task-desc">${descText}</div>
+                        <div class="task-details">
+                            <div class="muted">Category: ${task.category ? escapeHtml(task.category) : 'None'}</div>
+                            <div class="muted">Status: ${escapeHtml(task.status)}</div>
+                            <div class="muted">Assignees: ${task.assigneeIds.map(userName).map(escapeHtml).join(', ') || 'None'}</div>
+                        </div>
                     </div>
                 `;
                 }).join('')
@@ -1447,6 +1925,37 @@
             }
         });
 
+        el.showCreateChatBtn.addEventListener('click', () => {
+            const isHidden = el.createChatForm.classList.contains('hidden');
+            if (isHidden) {
+                el.createChatForm.reset();
+                el.createChatForm.classList.remove('hidden');
+                el.showCreateChatBtn.innerHTML = `
+                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </span>
+                    <span class="btn-text">Cancel</span>
+                `;
+                el.showCreateChatBtn.setAttribute('title', 'Cancel');
+            } else {
+                el.createChatForm.reset();
+                el.createChatForm.classList.add('hidden');
+                el.showCreateChatBtn.innerHTML = `
+                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </span>
+                    <span class="btn-text">New Chat</span>
+                `;
+                el.showCreateChatBtn.setAttribute('title', 'New Chat');
+            }
+        });
+
         el.createChatForm.addEventListener('submit', async event => {
             event.preventDefault();
             const ids = Array.from(document.querySelectorAll('[data-create-member]:checked')).map(input => Number(input.value));
@@ -1459,6 +1968,17 @@
                     })
                 });
                 el.createChatForm.reset();
+                el.createChatForm.classList.add('hidden');
+                el.showCreateChatBtn.innerHTML = `
+                    <span class="btn-icon" style="display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </span>
+                    <span class="btn-text">New Chat</span>
+                `;
+                el.showCreateChatBtn.setAttribute('title', 'New Chat');
                 await reloadAll();
                 await selectChat(data.chat.id);
             } catch (error) {
@@ -1482,6 +2002,7 @@
             const content = el.messageInput.value.trim();
             if (!content) return;
             el.messageInput.value = '';
+            el.sendMessageBtn.disabled = true;
 
             try {
                 if (state.ws && state.socketReady) {
@@ -1514,6 +2035,10 @@
                 setPane('tasks');
                 renderMessages();
                 renderTaskForm();
+
+                el.taskForm.classList.remove('hidden');
+                el.showTaskFormBtn.textContent = 'Cancel';
+                el.taskForm.scrollIntoView({ behavior: 'smooth' });
                 return;
             }
 
@@ -1587,6 +2112,10 @@
             } catch (error) {
                 showStatus(error.message, 'error');
             }
+        });
+
+        el.toggleDetailsBtn.addEventListener('click', () => {
+            el.appPage.classList.toggle('details-open');
         });
 
         el.addMemberForm.addEventListener('submit', async event => {
@@ -1673,6 +2202,8 @@
                     });
                 }
                 resetTaskForm();
+                el.taskForm.classList.add('hidden');
+                el.showTaskFormBtn.textContent = '+ New Task';
                 await refreshTasksAndCategories();
                 renderTaskForm();
                 renderTasks();
@@ -1684,8 +2215,18 @@
 
         el.membersTab.addEventListener('click', () => setPane('members'));
         el.tasksTab.addEventListener('click', () => setPane('tasks'));
-        el.newTaskBtn.addEventListener('click', () => {
-            resetTaskForm();
+        el.showTaskFormBtn.addEventListener('click', () => {
+            const isHidden = el.taskForm.classList.contains('hidden');
+            if (isHidden) {
+                resetTaskForm();
+                el.taskForm.classList.remove('hidden');
+                el.showTaskFormBtn.textContent = 'Cancel';
+                el.taskForm.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                resetTaskForm();
+                el.taskForm.classList.add('hidden');
+                el.showTaskFormBtn.textContent = '+ New Task';
+            }
         });
         el.clearTaskSourceBtn.addEventListener('click', () => {
             state.selectedMessage = null;
@@ -1694,6 +2235,11 @@
         });
         el.taskCategorySelect.addEventListener('change', () => {
             renderCategoryControls(Boolean(state.selectedChat));
+        });
+
+        el.messageInput.addEventListener('input', () => {
+            const hasContent = Boolean(el.messageInput.value.trim());
+            el.sendMessageBtn.disabled = !hasContent;
         });
 
         boot();
