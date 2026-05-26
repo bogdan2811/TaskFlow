@@ -391,7 +391,7 @@
 
         <div class="header">
             <h1>Edit Account</h1>
-            <p>Update your username, email, and password securely.</p>
+            <p>Update your username, avatar, and password securely.</p>
         </div>
 
         <!-- Profile Avatar Row -->
@@ -425,11 +425,6 @@
                 <label for="username">Username</label>
                 <input id="username" class="input" type="text" autocomplete="username" required>
                 <span class="field-help">5-20 characters, no spaces</span>
-            </div>
-
-            <div class="field">
-                <label for="email">Email Address</label>
-                <input id="email" class="input" type="email" autocomplete="email" required>
             </div>
 
             <button type="button" id="togglePasswordBtn" class="toggle-pwd-btn">
@@ -475,7 +470,6 @@
         const elements = {
             form: document.getElementById('editAccountForm'),
             username: document.getElementById('username'),
-            email: document.getElementById('email'),
             togglePasswordBtn: document.getElementById('togglePasswordBtn'),
             passwordSettingsGroup: document.getElementById('passwordSettingsGroup'),
             currentPassword: document.getElementById('currentPassword'),
@@ -520,7 +514,6 @@
                 const data = await res.json();
                 originalUser = data.user;
                 elements.username.value = data.user.username;
-                elements.email.value = data.user.email;
                 applyAvatar(getSavedAvatar());
             } catch (error) {
                 localStorage.removeItem('token');
@@ -604,12 +597,11 @@
             event.preventDefault();
 
             const username = elements.username.value.trim();
-            const email = elements.email.value.trim();
             const currentPassword = elements.currentPassword.value;
             const newPassword = elements.newPassword.value;
             const confirmNewPassword = elements.confirmNewPassword.value;
 
-            const hasProfileChanges = username !== originalUser.username || email !== originalUser.email;
+            const hasProfileChanges = username !== originalUser.username;
             const hasPasswordChanges = isChangingPassword;
 
             if (!hasProfileChanges && !hasPasswordChanges) {
@@ -641,7 +633,6 @@
             try {
                 const body = {};
                 if (username !== originalUser.username) body.username = username;
-                if (email !== originalUser.email) body.email = email;
 
                 if (isChangingPassword) {
                     body.currentPassword = currentPassword;

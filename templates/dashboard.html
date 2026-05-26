@@ -653,7 +653,7 @@
             left: 50%;
             bottom: 24px;
             transform: translateX(-50%);
-            z-index: 20;
+            z-index: 2000;
             max-width: min(560px, calc(100vw - 28px));
             padding: 12px 18px;
             border-radius: 10px;
@@ -1427,6 +1427,18 @@
             </div>
 
             <div id="tasksPane" class="panel-body stack">
+                <div class="settings-card" style="gap: 10px;">
+                    <div class="split">
+                        <select id="taskSortSelect" class="select">
+                            <option value="date">Sort by date</option>
+                            <option value="priority">Sort by priority</option>
+                        </select>
+                        <label class="check-row" style="justify-content: flex-end;">
+                            <input id="myTasksOnly" type="checkbox" checked>
+                            <span>My tickets</span>
+                        </label>
+                    </div>
+                </div>
                 <div id="tasksList" class="stack"></div>
 
                 <div class="inline wrap" style="justify-content: center; margin-top: 10px; margin-bottom: 10px;">
@@ -1603,6 +1615,8 @@
             taskNewCategoryField: document.getElementById('taskNewCategoryField'),
             taskNewCategory: document.getElementById('taskNewCategory'),
             taskAssigneesList: document.getElementById('taskAssigneesList'),
+            taskSortSelect: document.getElementById('taskSortSelect'),
+            myTasksOnly: document.getElementById('myTasksOnly'),
             createTaskBtn: document.getElementById('createTaskBtn'),
             tasksList: document.getElementById('tasksList'),
             status: document.getElementById('status')
@@ -1665,6 +1679,45 @@
         function truncateText(value, maxLength = 64) {
             const text = String(value ?? '').replace(/\s+/g, ' ').trim();
             return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+        }
+
+        function isTaskMine(task) {
+            return task.assigneeIds.includes(state.user?.id);
+        }
+
+        function taskDateValue(task) {
+            return task.dueDate ? new Date(task.dueDate).getTime() : Infinity;
+        }
+
+        function taskPriorityValue(task) {
+            const priorityRank = {
+                critical: 1,
+                high: 2,
+                medium: 3,
+                low: 4
+            };
+            return priorityRank[(task.priority || 'medium').trim().toLowerCase()] || 3;
+        }
+
+        function sortTasks(tasks) {
+            return [...tasks].sort((a, b) => {
+                if (el.taskSortSelect.value === 'priority') {
+                    const priorityDiff = taskPriorityValue(a) - taskPriorityValue(b);
+                    if (priorityDiff !== 0) return priorityDiff;
+                    return taskDateValue(a) - taskDateValue(b);
+                }
+                const dateDiff = taskDateValue(a) - taskDateValue(b);
+                if (dateDiff !== 0) return dateDiff;
+                return taskPriorityValue(a) - taskPriorityValue(b);
+            });
+        }
+
+        function canEditTask(task) {
+            return task.assigneeIds.includes(state.user?.id) || state.selectedChat?.createdBy === state.user?.id;
+        }
+
+        function canDeleteTask(task) {
+            return task.creatorId === state.user?.id;
         }
 
         function formatDate(value) {
@@ -2087,30 +2140,14 @@
                 el.tasksList.innerHTML = '<div class="empty">No chat selected</div>';
                 return;
             }
-            const priorityRank = {
-                'critical': 1,
-                'high': 2,
-                'medium': 3,
-                'low': 4
-            };
-            const sortedTasks = [...state.tasks].sort((a, b) => {
-                const rankA = priorityRank[(a.priority || 'medium').trim().toLowerCase()] || 3;
-                const rankB = priorityRank[(b.priority || 'medium').trim().toLowerCase()] || 3;
-                if (rankA !== rankB) {
-                    return rankA - rankB;
-                }
-                const catA = (a.category || '').trim().toLowerCase();
-                const catB = (b.category || '').trim().toLowerCase();
-                if (catA !== catB) {
-                    return catA.localeCompare(catB);
-                }
-                const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-                const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-                return dateA - dateB;
-            });
+            const visibleTasks = el.myTasksOnly.checked
+                ? state.tasks.filter(isTaskMine)
+                : state.tasks;
+            const sortedTasks = sortTasks(visibleTasks);
             el.tasksList.innerHTML = sortedTasks.length
                 ? sortedTasks.map(task => {
-                    const canEdit = task.creatorId === state.user.id;
+                    const canEdit = canEditTask(task);
+                    const canDelete = canDeleteTask(task);
                     const priorityClass = `pri-${(task.priority || 'medium').trim().toLowerCase()}`;
                     const hasDeadline = Boolean(task.dueDate);
                     const deadlineClass = hasDeadline ? 'task-deadline' : 'task-deadline no-deadline';
@@ -2122,8 +2159,8 @@
                             <div class="name" title="${escapeHtml(task.title)}">${escapeHtml(task.title)}</div>
                             ${canEdit ? `
                                 <button class="btn ghost small" type="button" data-edit-task="${task.id}">Edit</button>
-                                <button class="btn danger small" type="button" data-delete-task="${task.id}">Delete</button>
                             ` : ''}
+                            ${canDelete ? `<button class="btn danger small" type="button" data-delete-task="${task.id}">Delete</button>` : ''}
                         </div>
                         <div class="task-meta">
                             <span class="pill ${priorityClass}">${escapeHtml(task.priority)}</span>
@@ -2644,8 +2681,8 @@
             if (editButton) {
                 const task = state.tasks.find(item => item.id === Number(editButton.dataset.editTask));
                 if (!task) return;
-                if (task.creatorId !== state.user.id) {
-                    showStatus('Only the creator can edit this task', 'error');
+                if (!canEditTask(task)) {
+                    showStatus('Only assignees or the chat owner can edit this task', 'error');
                     return;
                 }
                 startEditTask(task);
@@ -2751,6 +2788,8 @@
         el.taskCategorySelect.addEventListener('change', () => {
             renderCategoryControls(Boolean(state.selectedChat));
         });
+        el.taskSortSelect.addEventListener('change', renderTasks);
+        el.myTasksOnly.addEventListener('change', renderTasks);
 
         el.messageInput.addEventListener('input', () => {
             const hasContent = Boolean(el.messageInput.value.trim());

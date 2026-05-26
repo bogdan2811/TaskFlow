@@ -103,6 +103,12 @@ def _field_was_sent(body: BaseModel, field_name: str) -> bool:
     return field_name in field_set
 
 
+def _can_edit_task(task: Task, user_id: int, db: Session) -> bool:
+    if db.query(Chat).filter_by(chat_id=task.chat_id, created_by=user_id).first():
+        return True
+    return db.query(TaskAssignee).filter_by(task_id=task.task_id, user_id=user_id).first() is not None
+
+
 async def _broadcast(chat_id: int, event_type: str, task_data: dict):
     await manager.broadcast(chat_id, {'type': event_type, 'task': task_data})
 
@@ -176,7 +182,7 @@ async def update_task(
 
     _require_chat_participant(current_user.user_id, task.chat_id, db)
 
-    if task.creator_id != current_user.user_id:
+    if not _can_edit_task(task, current_user.user_id, db):
         raise HTTPException(status_code=403, detail={'error': 'You do not have permission to modify this task.'})
 
     if body.version != task.version:

@@ -37,6 +37,7 @@
 
         button,
         input,
+        textarea,
         select {
             font: inherit;
         }
@@ -108,7 +109,7 @@
 
         .toolbar {
             display: grid;
-            grid-template-columns: 1fr 220px 220px 180px;
+            grid-template-columns: 1fr 220px 220px 180px 180px;
             gap: 12px;
             align-items: center;
         }
@@ -125,6 +126,7 @@
         }
 
         .input,
+        .textarea,
         .select {
             min-height: 38px;
             border-radius: 10px;
@@ -133,6 +135,11 @@
             color: var(--text);
             padding: 9px 12px;
             outline: none;
+        }
+
+        .textarea {
+            min-height: 88px;
+            resize: vertical;
         }
 
         .select option {
@@ -294,12 +301,104 @@
             text-align: center;
         }
 
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(2, 4, 15, 0.66);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .modal {
+            width: min(560px, 100%);
+            max-height: min(760px, calc(100vh - 40px));
+            overflow: auto;
+            background: rgba(13, 17, 34, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+        }
+
+        .modal-header {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 16px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.04);
+            display: grid;
+            place-items: center;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .modal-body {
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .checkbox-list {
+            max-height: 140px;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .check-row input {
+            accent-color: var(--accent);
+        }
+
         .status {
             position: fixed;
             left: 50%;
             bottom: 24px;
             transform: translateX(-50%);
-            z-index: 20;
+            z-index: 2000;
             max-width: min(560px, calc(100vw - 28px));
             padding: 12px 18px;
             border-radius: 10px;
@@ -366,10 +465,67 @@
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
             </select>
+            <select id="sortSelect" class="select">
+                <option value="date">Sort by date</option>
+                <option value="priority">Sort by priority</option>
+            </select>
+            <label class="btn secondary" style="min-height: 38px; cursor: pointer;">
+                <input id="myTicketsOnly" type="checkbox" checked style="accent-color: #8b5cf6;">
+                <span>My tickets</span>
+            </label>
         </section>
 
         <section class="board" id="board"></section>
     </main>
+
+    <div id="editTicketModal" class="modal-backdrop hidden">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editTicketDialogTitle">
+            <div class="modal-header">
+                <h2 id="editTicketDialogTitle">Edit Ticket</h2>
+                <button id="closeEditTicketBtn" class="modal-close" type="button" aria-label="Close edit ticket">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="editTicketForm" class="modal-body">
+                <div id="editTicketMeta" class="muted"></div>
+                <div class="field">
+                    <label for="editTicketTitleInput" class="muted">Title</label>
+                    <input id="editTicketTitleInput" class="input" type="text" required>
+                </div>
+                <div class="field">
+                    <label for="editTicketDescription" class="muted">Description</label>
+                    <textarea id="editTicketDescription" class="textarea" required></textarea>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="editTicketDeadline" class="muted">Deadline</label>
+                        <input id="editTicketDeadline" class="input" type="datetime-local" required>
+                    </div>
+                    <div class="field">
+                        <label for="editTicketPriority" class="muted">Priority</label>
+                        <select id="editTicketPriority" class="select">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="editTicketStatus" class="muted">Status</label>
+                    <select id="editTicketStatus" class="status-select"></select>
+                </div>
+                <div class="field">
+                    <label class="muted">Assignees</label>
+                    <div id="editTicketAssignees" class="checkbox-list"></div>
+                </div>
+                <button class="btn" type="submit">Save ticket</button>
+            </form>
+        </section>
+    </div>
 
     <div id="status" class="status hidden"></div>
 
@@ -390,7 +546,8 @@
             user: null,
             tasks: [],
             users: [],
-            chats: []
+            chats: [],
+            editingTask: null
         };
 
         const el = {
@@ -398,7 +555,19 @@
             chatFilter: document.getElementById('chatFilter'),
             searchInput: document.getElementById('searchInput'),
             priorityFilter: document.getElementById('priorityFilter'),
+            sortSelect: document.getElementById('sortSelect'),
+            myTicketsOnly: document.getElementById('myTicketsOnly'),
             summary: document.getElementById('summary'),
+            editTicketModal: document.getElementById('editTicketModal'),
+            editTicketForm: document.getElementById('editTicketForm'),
+            closeEditTicketBtn: document.getElementById('closeEditTicketBtn'),
+            editTicketMeta: document.getElementById('editTicketMeta'),
+            editTicketTitle: document.getElementById('editTicketTitleInput'),
+            editTicketDescription: document.getElementById('editTicketDescription'),
+            editTicketDeadline: document.getElementById('editTicketDeadline'),
+            editTicketPriority: document.getElementById('editTicketPriority'),
+            editTicketStatus: document.getElementById('editTicketStatus'),
+            editTicketAssignees: document.getElementById('editTicketAssignees'),
             status: document.getElementById('status')
         };
 
@@ -442,6 +611,14 @@
             });
         }
 
+        function toDateTimeLocal(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return local.toISOString().slice(0, 16);
+        }
+
         function userName(userId) {
             const user = state.users.find(item => item.id === userId);
             return user ? user.username : `User ${userId}`;
@@ -450,6 +627,15 @@
         function chatName(chatId) {
             const chat = state.chats.find(item => item.id === chatId);
             return chat ? chat.name : `Chat ${chatId}`;
+        }
+
+        function isTaskMine(task) {
+            return task.assigneeIds.includes(state.user?.id);
+        }
+
+        function canEditTask(task) {
+            const chat = state.chats.find(item => item.id === task.chatId);
+            return task.assigneeIds.includes(state.user?.id) || chat?.createdBy === state.user?.id;
         }
 
         function filteredTasks() {
@@ -466,7 +652,31 @@
                 ].join(' ').toLowerCase();
                 return (!query || haystack.includes(query))
                     && (!priority || task.priority === priority)
-                    && (!chatId || String(task.chatId) === chatId);
+                    && (!chatId || String(task.chatId) === chatId)
+                    && (!el.myTicketsOnly.checked || isTaskMine(task));
+            });
+        }
+
+        function taskDateValue(task) {
+            return task.dueDate ? new Date(task.dueDate).getTime() : Infinity;
+        }
+
+        function taskPriorityValue(task) {
+            const priorityRank = { critical: 1, high: 2, medium: 3, low: 4 };
+            return priorityRank[task.priority] || 3;
+        }
+
+        function sortTasks(tasks) {
+            const sortMode = el.sortSelect.value;
+            return [...tasks].sort((a, b) => {
+                if (sortMode === 'priority') {
+                    const priorityDiff = taskPriorityValue(a) - taskPriorityValue(b);
+                    if (priorityDiff !== 0) return priorityDiff;
+                    return taskDateValue(a) - taskDateValue(b);
+                }
+                const dateDiff = taskDateValue(a) - taskDateValue(b);
+                if (dateDiff !== 0) return dateDiff;
+                return taskPriorityValue(a) - taskPriorityValue(b);
             });
         }
 
@@ -475,17 +685,7 @@
             const selectedChatName = el.chatFilter.value ? chatName(Number(el.chatFilter.value)) : 'All conversations';
             el.summary.textContent = `${selectedChatName} - ${tasks.length} task${tasks.length === 1 ? '' : 's'} visible`;
             el.board.innerHTML = columns.map(([status, label]) => {
-                const columnTasks = tasks
-                    .filter(task => task.status === status)
-                    .sort((a, b) => {
-                        const priorityRank = { critical: 1, high: 2, medium: 3, low: 4 };
-                        const rankA = priorityRank[a.priority] || 3;
-                        const rankB = priorityRank[b.priority] || 3;
-                        if (rankA !== rankB) return rankA - rankB;
-                        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-                        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-                        return dateA - dateB;
-                    });
+                const columnTasks = sortTasks(tasks.filter(task => task.status === status));
                 return `
                     <section class="column">
                         <div class="column-header">
@@ -509,7 +709,7 @@
 
         function taskCard(task) {
             const assignees = task.assigneeIds.map(userName).join(', ') || 'None';
-            const canEdit = task.creatorId === state.user?.id;
+            const canEdit = canEditTask(task);
             return `
                 <article class="task-card">
                     <div class="meta">
@@ -521,22 +721,67 @@
                     <div class="muted">Chat: ${escapeHtml(chatName(task.chatId))}</div>
                     <div class="muted">Due: ${escapeHtml(formatDate(task.dueDate))}</div>
                     <div class="muted">Assignees: ${escapeHtml(assignees)}</div>
-                    <div class="card-footer">
-                        ${canEdit ? `
-                            <select class="status-select" data-task-status="${task.id}">
-                                ${columns.map(([value, label]) => `<option value="${value}" ${task.status === value ? 'selected' : ''}>${label}</option>`).join('')}
-                            </select>
-                        ` : `<div class="muted">Status can be changed by the task creator.</div>`}
-                    </div>
+                    ${canEdit ? `<button class="btn secondary" type="button" data-edit-ticket="${task.id}">Edit Ticket</button>` : `<div class="muted">Ticket can be edited by assignees or the chat owner.</div>`}
                 </article>
             `;
         }
 
-        async function updateTaskStatus(taskId, status) {
+        async function openEditTicket(taskId) {
             const task = state.tasks.find(item => item.id === taskId);
-            if (!task || task.creatorId !== state.user?.id) return;
-            const previousStatus = task.status;
-            task.status = status;
+            if (!task || !canEditTask(task)) return;
+            state.editingTask = task;
+            el.editTicketMeta.textContent = `${chatName(task.chatId)} - ${formatDate(task.dueDate)}`;
+            el.editTicketTitle.value = task.title || '';
+            el.editTicketDescription.value = task.description || '';
+            el.editTicketDeadline.value = toDateTimeLocal(task.dueDate);
+            el.editTicketPriority.value = task.priority || 'medium';
+            el.editTicketStatus.innerHTML = columns
+                .map(([value, label]) => `<option value="${value}" ${task.status === value ? 'selected' : ''}>${label}</option>`)
+                .join('');
+
+            el.editTicketAssignees.innerHTML = '<div class="muted">Loading members...</div>';
+            el.editTicketModal.classList.remove('hidden');
+            el.editTicketTitle.focus();
+
+            try {
+                const data = await api(`/api/chats/${task.chatId}`);
+                const participants = data.chat.participants || [];
+                el.editTicketAssignees.innerHTML = participants.length
+                    ? participants.map(user => `
+                        <label class="check-row">
+                            <input type="checkbox" value="${user.id}" data-edit-ticket-assignee ${task.assigneeIds.includes(user.id) ? 'checked' : ''}>
+                            <span>${escapeHtml(user.username)}${user.id === state.user?.id ? ' (You)' : ''}</span>
+                        </label>
+                    `).join('')
+                    : '<div class="muted">No chat members</div>';
+            } catch (error) {
+                el.editTicketAssignees.innerHTML = '<div class="muted">Could not load chat members</div>';
+                showError(error.message);
+            }
+        }
+
+        function closeEditTicket() {
+            state.editingTask = null;
+            el.editTicketModal.classList.add('hidden');
+        }
+
+        async function updateEditingTask() {
+            const task = state.editingTask;
+            if (!task || !canEditTask(task)) return;
+            const assigneeIds = Array.from(document.querySelectorAll('[data-edit-ticket-assignee]:checked'))
+                .map(input => Number(input.value));
+            if (!assigneeIds.length) {
+                showError('At least one assignee is required');
+                return;
+            }
+
+            const previousTask = { ...task };
+            task.title = el.editTicketTitle.value;
+            task.description = el.editTicketDescription.value;
+            task.dueDate = el.editTicketDeadline.value;
+            task.priority = el.editTicketPriority.value;
+            task.status = el.editTicketStatus.value;
+            task.assigneeIds = assigneeIds;
             render();
 
             try {
@@ -548,7 +793,12 @@
                     },
                     body: JSON.stringify({
                         version: task.version,
-                        status
+                        title: el.editTicketTitle.value,
+                        description: el.editTicketDescription.value,
+                        deadline: el.editTicketDeadline.value,
+                        priority: el.editTicketPriority.value,
+                        status: el.editTicketStatus.value,
+                        assignee_ids: assigneeIds
                     })
                 });
                 const data = await response.json();
@@ -560,9 +810,10 @@
                 if (index >= 0) {
                     state.tasks[index] = data.task;
                 }
+                closeEditTicket();
                 render();
             } catch (error) {
-                task.status = previousStatus;
+                Object.assign(task, previousTask);
                 render();
                 showError(error.message);
             }
@@ -595,10 +846,27 @@
         el.searchInput.addEventListener('input', render);
         el.priorityFilter.addEventListener('change', render);
         el.chatFilter.addEventListener('change', render);
-        el.board.addEventListener('change', event => {
-            const select = event.target.closest('[data-task-status]');
-            if (!select) return;
-            updateTaskStatus(Number(select.dataset.taskStatus), select.value);
+        el.sortSelect.addEventListener('change', render);
+        el.myTicketsOnly.addEventListener('change', render);
+        el.board.addEventListener('click', event => {
+            const button = event.target.closest('[data-edit-ticket]');
+            if (!button) return;
+            openEditTicket(Number(button.dataset.editTicket));
+        });
+        el.editTicketForm.addEventListener('submit', event => {
+            event.preventDefault();
+            updateEditingTask();
+        });
+        el.closeEditTicketBtn.addEventListener('click', closeEditTicket);
+        el.editTicketModal.addEventListener('click', event => {
+            if (event.target === el.editTicketModal) {
+                closeEditTicket();
+            }
+        });
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !el.editTicketModal.classList.contains('hidden')) {
+                closeEditTicket();
+            }
         });
         boot();
     </script>

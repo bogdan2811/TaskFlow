@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from extensions import get_db
 from models.chat import Chat, ChatParticipant
 from models.message import Message
+from models.task import Task, TaskAssignee
 from models.user import User
 from routes.auth import _get_current_user
 from ws_manager import manager
@@ -73,6 +74,25 @@ def _ensure_users_exist(user_ids: set[int], db: Session):
     missing_ids = sorted(user_ids - existing_ids)
     if missing_ids:
         raise HTTPException(status_code=404, detail={'error': f'Users not found: {missing_ids}'})
+
+
+def _reassign_tasks_before_participant_removal(chat_id: int, user_id: int, new_owner_id: Optional[int], db: Session):
+    tasks = db.query(Task).filter_by(chat_id=chat_id).all()
+    task_ids = [task.task_id for task in tasks]
+    if task_ids:
+        db.query(TaskAssignee).filter(
+            TaskAssignee.task_id.in_(task_ids),
+            TaskAssignee.user_id == user_id,
+        ).delete(synchronize_session=False)
+
+    if new_owner_id is None:
+        return
+
+    for task in tasks:
+        if task.creator_id == user_id:
+            task.creator_id = new_owner_id
+            task.version += 1
+            task.updated_at = datetime.now(timezone.utc)
 
 
 def _chat_payload(chat: Chat, db: Session, include_participants: bool = False) -> dict:
@@ -281,8 +301,11 @@ async def leave_chat(
         await manager.disconnect_user(chat_id, current_user.user_id, reason='Left chat')
         return {'message': 'Left chat and deleted empty chat'}
 
+    new_owner_id = remaining[0].user_id
+    _reassign_tasks_before_participant_removal(chat_id, current_user.user_id, new_owner_id, db)
+
     if chat.created_by == current_user.user_id:
-        chat.created_by = remaining[0].user_id
+        chat.created_by = new_owner_id
 
     db.delete(participant)
     db.commit()
@@ -310,6 +333,8 @@ async def remove_participant(
     participant = db.query(ChatParticipant).filter_by(chat_id=chat_id, user_id=user_id).first()
     if not participant:
         raise HTTPException(status_code=404, detail={'error': 'Participant not found'})
+
+    _reassign_tasks_before_participant_removal(chat_id, user_id, chat.created_by, db)
 
     db.delete(participant)
     db.commit()
