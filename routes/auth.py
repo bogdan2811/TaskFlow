@@ -193,7 +193,7 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(_get_c
 
 
 @router.post('/register', status_code=201)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+async def register(body: RegisterRequest, db: Session = Depends(get_db)):
     username_raw = body.username.strip()
     email_raw = body.email.strip().lower()
     password = body.password
@@ -240,6 +240,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(user)
+
+    await manager.broadcast_all_users({'type': 'user_created', 'user': user.to_dict()})
 
     return {'message': 'Account created successfully', 'user': user.to_dict()}
 

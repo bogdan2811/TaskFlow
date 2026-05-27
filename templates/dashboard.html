@@ -2738,7 +2738,7 @@
         }
 
         async function handleUserSocketEvent(data) {
-            if (['chat_created', 'chat_participants_added'].includes(data.type)) {
+            if (['chat_created', 'chat_participants_added', 'user_created'].includes(data.type)) {
                 await refreshUsersQuietly();
                 await refreshChatListQuietly();
                 return;

@@ -859,7 +859,7 @@
         }
 
         async function handleUserSocketEvent(data) {
-            if (['task_created', 'task_updated', 'task_deleted', 'chat_created', 'chat_participants_added'].includes(data.type)) {
+            if (['task_created', 'task_updated', 'task_deleted', 'chat_created', 'chat_participants_added', 'user_created'].includes(data.type)) {
                 try {
                     await reloadOverview();
                 } catch (error) {

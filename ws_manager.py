@@ -66,6 +66,9 @@ class ConnectionManager:
         for user_id, ws in dead:
             self.disconnect_user_socket(user_id, ws)
 
+    async def broadcast_all_users(self, payload: dict):
+        await self.broadcast_users(set(self._users.keys()), payload)
+
     async def disconnect_user(self, chat_id: int, user_id: int, code: int = 4003, reason: str = ''):
         room = self._rooms.get(chat_id, {})
         for ws, connected_user_id in list(room.items()):
