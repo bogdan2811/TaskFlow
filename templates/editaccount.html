@@ -351,6 +351,50 @@
             transform: translateY(0);
         }
 
+        .danger-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .danger-zone-title {
+            color: #fecaca;
+            font-size: 0.85rem;
+            font-weight: 750;
+        }
+
+        .danger-zone-copy {
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+        }
+
+        .btn-delete-account {
+            align-self: flex-start;
+            min-height: 38px;
+            padding: 0 18px;
+            border-radius: 19px;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.12);
+            color: #fecaca;
+            font-size: 0.9rem;
+            font-weight: 750;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete-account:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.55);
+        }
+
+        .btn-delete-account:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         /* Status Toasts */
         .status-toast {
             position: fixed;
@@ -453,6 +497,14 @@
 
             <button class="btn-save" type="submit" id="saveBtn">Save Changes</button>
         </form>
+
+        <section class="danger-zone" aria-labelledby="dangerZoneTitle">
+            <div>
+                <div id="dangerZoneTitle" class="danger-zone-title">Delete account</div>
+                <p class="danger-zone-copy">This removes your account from every conversation and shows your old messages as Deleted User.</p>
+            </div>
+            <button type="button" id="deleteAccountBtn" class="btn-delete-account">Delete Account</button>
+        </section>
     </div>
 
     <!-- Feedback Toasts -->
@@ -477,6 +529,7 @@
             confirmNewPasswordGroup: document.getElementById('confirmNewPasswordGroup'),
             confirmNewPassword: document.getElementById('confirmNewPassword'),
             saveBtn: document.getElementById('saveBtn'),
+            deleteAccountBtn: document.getElementById('deleteAccountBtn'),
             avatarPreview: document.getElementById('avatarPreview'),
             avatarOptions: document.getElementById('avatarOptions'),
             toast: document.getElementById('toast')
@@ -664,6 +717,55 @@
                 showToast(error.message, 'error');
                 elements.saveBtn.disabled = false;
                 elements.saveBtn.textContent = 'Save Changes';
+            }
+        });
+
+        elements.deleteAccountBtn.addEventListener('click', async () => {
+            if (!window.confirm('Delete your account? You will leave every conversation and your old messages will show as Deleted User. This cannot be undone.')) {
+                return;
+            }
+
+            const currentPassword = window.prompt('Enter your current password to delete your account');
+            if (currentPassword === null) {
+                return;
+            }
+            if (!currentPassword) {
+                showToast('Current password is required', 'error');
+                return;
+            }
+
+            elements.deleteAccountBtn.disabled = true;
+            elements.deleteAccountBtn.textContent = 'Deleting...';
+
+            try {
+                const res = await fetch('/api/auth/account', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ currentPassword })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    const detail = data.detail || {};
+                    const message = detail.error || data.error || res.statusText || 'Delete failed';
+                    throw new Error(message);
+                }
+
+                localStorage.removeItem('token');
+                if (originalUser) {
+                    localStorage.removeItem(`taskflow_avatar_${originalUser.id}`);
+                }
+                showToast('Account deleted');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 900);
+            } catch (error) {
+                showToast(error.message, 'error');
+                elements.deleteAccountBtn.disabled = false;
+                elements.deleteAccountBtn.textContent = 'Delete Account';
             }
         });
     </script>

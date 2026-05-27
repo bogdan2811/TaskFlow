@@ -11,6 +11,7 @@ from models.message import Message
 from models.task import Task, TaskAssignee
 from models.user import User
 from routes.auth import _get_current_user
+from system_events import add_system_message, broadcast_system_message
 from ws_manager import manager
 
 router = APIRouter(prefix='/api/chats', tags=['chats'])
@@ -107,7 +108,11 @@ def _chat_payload(chat: Chat, db: Session, include_participants: bool = False) -
     data = chat.to_dict()
     data['participantIds'] = participant_ids
     data['participantCount'] = len(participant_ids)
-    data['lastMessage'] = last_message.to_dict() if last_message else None
+    if last_message:
+        sender = db.query(User).filter_by(user_id=last_message.sender_id).first()
+        data['lastMessage'] = last_message.to_dict(sender)
+    else:
+        data['lastMessage'] = None
 
     if include_participants:
         data['participants'] = [user.to_dict() for user in _users_by_id(participant_ids, db)]
@@ -134,6 +139,11 @@ def _create_message(chat_id: int, sender_id: int, content: str, db: Session) -> 
     return message
 
 
+def _names_for_user_ids(user_ids: list[int], db: Session) -> list[str]:
+    users = _users_by_id(user_ids, db)
+    return [user.username for user in users]
+
+
 async def _broadcast_chat(chat_id: int, event_type: str, payload: dict):
     await manager.broadcast(chat_id, {'type': event_type, **payload})
 
@@ -157,7 +167,7 @@ def list_chats(db: Session = Depends(get_db), current_user: User = Depends(_get_
 
 
 @router.post('', status_code=201)
-def create_chat(
+async def create_chat(
     body: CreateChatRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(_get_current_user),
@@ -176,9 +186,14 @@ def create_chat(
     for user_id in sorted(participant_ids):
         db.add(ChatParticipant(chat_id=chat.chat_id, user_id=user_id))
 
+    system_message = add_system_message(chat.chat_id, f'{current_user.username} created the conversation.', db)
     db.commit()
     db.refresh(chat)
-    return {'message': 'Chat created successfully', 'chat': _chat_payload(chat, db, include_participants=True)}
+    db.refresh(system_message)
+    payload = _chat_payload(chat, db, include_participants=True)
+    await manager.broadcast_users(participant_ids, {'type': 'chat_created', 'chat': payload})
+    await broadcast_system_message(system_message, db, list(participant_ids))
+    return {'message': 'Chat created successfully', 'chat': payload}
 
 
 @router.get('/{chat_id}')
@@ -270,11 +285,17 @@ async def add_participants(
     for user_id in sorted(new_ids):
         db.add(ChatParticipant(chat_id=chat_id, user_id=user_id))
 
+    added_names = ', '.join(_names_for_user_ids(sorted(new_ids), db))
+    system_message = add_system_message(chat_id, f'{current_user.username} added {added_names} to the conversation.', db)
     db.commit()
     db.refresh(chat)
+    db.refresh(system_message)
 
     payload = _chat_payload(chat, db, include_participants=True)
     await _broadcast_chat(chat_id, 'participants_added', {'userIds': sorted(new_ids), 'chat': payload})
+    await manager.broadcast_users(new_ids, {'type': 'chat_created', 'chat': payload})
+    await manager.broadcast_users(existing_ids, {'type': 'chat_participants_added', 'userIds': sorted(new_ids), 'chat': payload})
+    await broadcast_system_message(system_message, db)
     return {'message': 'Participants added', 'chat': payload}
 
 
@@ -307,12 +328,15 @@ async def leave_chat(
     if chat.created_by == current_user.user_id:
         chat.created_by = new_owner_id
 
+    system_message = add_system_message(chat_id, f'{current_user.username} left the conversation.', db)
     db.delete(participant)
     db.commit()
     db.refresh(chat)
+    db.refresh(system_message)
 
     payload = _chat_payload(chat, db, include_participants=True)
     await _broadcast_chat(chat_id, 'participant_left', {'userId': current_user.user_id, 'chat': payload})
+    await broadcast_system_message(system_message, db, [row.user_id for row in remaining])
     await manager.disconnect_user(chat_id, current_user.user_id, reason='Left chat')
     return {'message': 'Left chat successfully'}
 
@@ -334,14 +358,22 @@ async def remove_participant(
     if not participant:
         raise HTTPException(status_code=404, detail={'error': 'Participant not found'})
 
+    removed_user = db.query(User).filter_by(user_id=user_id).first()
     _reassign_tasks_before_participant_removal(chat_id, user_id, chat.created_by, db)
 
+    system_message = add_system_message(
+        chat_id,
+        f'{current_user.username} removed {removed_user.username if removed_user else "a user"} from the conversation.',
+        db,
+    )
     db.delete(participant)
     db.commit()
     db.refresh(chat)
+    db.refresh(system_message)
 
     payload = _chat_payload(chat, db, include_participants=True)
     await _broadcast_chat(chat_id, 'participant_removed', {'userId': user_id, 'chat': payload})
+    await broadcast_system_message(system_message, db)
     await manager.disconnect_user(chat_id, user_id, reason='Removed from chat')
     return {'message': 'Participant removed'}
 
@@ -363,7 +395,13 @@ def list_messages(
     messages = query.order_by(Message.message_id.desc()).limit(limit).all()
     messages.reverse()
 
-    return {'messages': [message.to_dict() for message in messages]}
+    sender_ids = {message.sender_id for message in messages}
+    senders = {
+        user.user_id: user
+        for user in db.query(User).filter(User.user_id.in_(sender_ids)).all()
+    } if sender_ids else {}
+
+    return {'messages': [message.to_dict(senders.get(message.sender_id)) for message in messages]}
 
 
 @router.post('/{chat_id}/messages', status_code=201)
@@ -376,8 +414,13 @@ async def send_message(
     _require_participant(current_user.user_id, chat_id, db)
     message = _create_message(chat_id, current_user.user_id, body.content, db)
 
-    await _broadcast_chat(chat_id, 'message_created', {'message': message.to_dict()})
-    return {'message': message.to_dict()}
+    message_payload = message.to_dict(current_user)
+    await _broadcast_chat(chat_id, 'message_created', {'message': message_payload})
+    await manager.broadcast_users(
+        _participant_ids(chat_id, db),
+        {'type': 'chat_message_created', 'chatId': chat_id, 'message': message_payload},
+    )
+    return {'message': message_payload}
 
 
 @router.patch('/{chat_id}/messages/{message_id}')
@@ -402,8 +445,13 @@ async def update_message(
     db.commit()
     db.refresh(message)
 
-    await _broadcast_chat(chat_id, 'message_updated', {'message': message.to_dict()})
-    return {'message': message.to_dict()}
+    message_payload = message.to_dict(current_user)
+    await _broadcast_chat(chat_id, 'message_updated', {'message': message_payload})
+    await manager.broadcast_users(
+        _participant_ids(chat_id, db),
+        {'type': 'chat_message_updated', 'chatId': chat_id, 'message': message_payload},
+    )
+    return {'message': message_payload}
 
 
 @router.delete('/{chat_id}/messages/{message_id}')
@@ -418,9 +466,14 @@ async def delete_message(
     if message.sender_id != current_user.user_id and chat.created_by != current_user.user_id:
         raise HTTPException(status_code=403, detail={'error': 'Only the sender or chat owner can delete this message'})
 
-    payload = message.to_dict()
+    sender = db.query(User).filter_by(user_id=message.sender_id).first()
+    payload = message.to_dict(sender)
     db.delete(message)
     db.commit()
 
     await _broadcast_chat(chat_id, 'message_deleted', {'message': payload})
+    await manager.broadcast_users(
+        _participant_ids(chat_id, db),
+        {'type': 'chat_message_deleted', 'chatId': chat_id, 'message': payload},
+    )
     return {'message': 'Message deleted successfully'}

@@ -547,7 +547,8 @@
             tasks: [],
             users: [],
             chats: [],
-            editingTask: null
+            editingTask: null,
+            userWs: null
         };
 
         const el = {
@@ -621,7 +622,7 @@
 
         function userName(userId) {
             const user = state.users.find(item => item.id === userId);
-            return user ? user.username : `User ${userId}`;
+            return user ? user.username : 'Deleted User';
         }
 
         function chatName(chatId) {
@@ -701,10 +702,14 @@
         }
 
         function renderChatFilter() {
+            const selectedChatId = el.chatFilter.value;
             el.chatFilter.innerHTML = `
                 <option value="">All conversations</option>
                 ${state.chats.map(chat => `<option value="${chat.id}">${escapeHtml(chat.name)}</option>`).join('')}
             `;
+            if ([...el.chatFilter.options].some(option => option.value === selectedChatId)) {
+                el.chatFilter.value = selectedChatId;
+            }
         }
 
         function taskCard(task) {
@@ -819,20 +824,56 @@
             }
         }
 
+        function connectUserSocket() {
+            if (state.userWs) {
+                state.userWs.close();
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const ws = new WebSocket(`${protocol}://${window.location.host}/ws/user?token=${encodeURIComponent(token)}`);
+            state.userWs = ws;
+
+            ws.addEventListener('message', event => {
+                const data = JSON.parse(event.data);
+                handleUserSocketEvent(data);
+            });
+
+            ws.addEventListener('close', () => {
+                if (state.userWs === ws) {
+                    state.userWs = null;
+                }
+            });
+        }
+
+        async function reloadOverview() {
+            const [tasksData, usersData, chatsData] = await Promise.all([
+                api('/api/tasks'),
+                api('/api/auth/users'),
+                api('/api/chats')
+            ]);
+            state.tasks = tasksData.tasks || [];
+            state.users = usersData || [];
+            state.chats = chatsData.chats || [];
+            renderChatFilter();
+            render();
+        }
+
+        async function handleUserSocketEvent(data) {
+            if (['task_created', 'task_updated', 'task_deleted', 'chat_created', 'chat_participants_added'].includes(data.type)) {
+                try {
+                    await reloadOverview();
+                } catch (error) {
+                    showError(error.message);
+                }
+            }
+        }
+
         async function boot() {
             try {
                 const me = await api('/api/auth/me');
-                const [tasksData, usersData, chatsData] = await Promise.all([
-                    api('/api/tasks'),
-                    api('/api/auth/users'),
-                    api('/api/chats')
-                ]);
                 state.user = me.user;
-                state.tasks = tasksData.tasks || [];
-                state.users = usersData || [];
-                state.chats = chatsData.chats || [];
-                renderChatFilter();
-                render();
+                await reloadOverview();
+                connectUserSocket();
             } catch (error) {
                 if (error.message.includes('Invalid') || error.message.includes('expired') || error.message.includes('User not found')) {
                     localStorage.removeItem('token');

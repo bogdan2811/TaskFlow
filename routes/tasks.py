@@ -12,6 +12,7 @@ from models.message import Message
 from models.task import Task, TaskAssignee, TASK_STATUSES, TASK_PRIORITIES
 from models.user import User
 from routes.auth import _get_current_user
+from system_events import add_system_message, broadcast_system_message
 from ws_manager import manager
 
 router = APIRouter(prefix='/api', tags=['tasks'])
@@ -109,8 +110,31 @@ def _can_edit_task(task: Task, user_id: int, db: Session) -> bool:
     return db.query(TaskAssignee).filter_by(task_id=task.task_id, user_id=user_id).first() is not None
 
 
-async def _broadcast(chat_id: int, event_type: str, task_data: dict):
+def _chat_participant_ids(chat_id: int, db: Session) -> list[int]:
+    return [
+        row.user_id
+        for row in db.query(ChatParticipant.user_id).filter_by(chat_id=chat_id).all()
+    ]
+
+
+def _user_names(user_ids: list[int], db: Session) -> list[str]:
+    if not user_ids:
+        return []
+    users = db.query(User).filter(User.user_id.in_(user_ids)).all()
+    by_id = {user.user_id: user.username for user in users}
+    return [by_id.get(user_id, f'User {user_id}') for user_id in user_ids]
+
+
+def _format_status(raw: str) -> str:
+    return raw.replace('_', ' ').title()
+
+
+async def _broadcast(chat_id: int, event_type: str, task_data: dict, db: Session):
     await manager.broadcast(chat_id, {'type': event_type, 'task': task_data})
+    await manager.broadcast_users(
+        _chat_participant_ids(chat_id, db),
+        {'type': event_type, 'task': task_data},
+    )
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -165,7 +189,17 @@ async def create_task(
     db.commit()
     db.refresh(task)
 
-    await _broadcast(task.chat_id, 'task_created', task.to_dict())
+    assignee_names = ', '.join(_user_names(assignee_ids, db))
+    system_message = add_system_message(
+        task.chat_id,
+        f'{current_user.username} created ticket "{task.title}" for {assignee_names}.',
+        db,
+    )
+    db.commit()
+    db.refresh(system_message)
+
+    await _broadcast(task.chat_id, 'task_created', task.to_dict(), db)
+    await broadcast_system_message(system_message, db)
     return {'message': 'Task created successfully', 'task': task.to_dict()}
 
 
@@ -187,6 +221,9 @@ async def update_task(
 
     if body.version != task.version:
         raise HTTPException(status_code=409, detail={'error': 'Something went wrong. Please refresh.'})
+
+    old_status = task.status
+    old_title = task.title
 
     if _field_was_sent(body, 'source_message_id'):
         _validate_source_message(body.source_message_id, task.chat_id, db)
@@ -233,7 +270,23 @@ async def update_task(
     db.commit()
     db.refresh(task)
 
-    await _broadcast(task.chat_id, 'task_updated', task.to_dict())
+    if body.status is not None and body.status != old_status:
+        audit_text = f'{current_user.username} changed ticket "{task.title}" status to {_format_status(task.status)}.'
+    elif body.assignee_ids is not None:
+        updated_assignee_ids = [
+            row.user_id for row in db.query(TaskAssignee.user_id).filter_by(task_id=task.task_id).all()
+        ]
+        assignee_names = ', '.join(_user_names(updated_assignee_ids, db))
+        audit_text = f'{current_user.username} updated ticket "{task.title}" assignees to {assignee_names}.'
+    else:
+        audit_text = f'{current_user.username} updated ticket "{task.title or old_title}".'
+
+    system_message = add_system_message(task.chat_id, audit_text, db)
+    db.commit()
+    db.refresh(system_message)
+
+    await _broadcast(task.chat_id, 'task_updated', task.to_dict(), db)
+    await broadcast_system_message(system_message, db)
     return {'message': 'Task updated successfully', 'task': task.to_dict()}
 
 
@@ -294,10 +347,16 @@ async def delete_task(
         raise HTTPException(status_code=403, detail={'error': 'You do not have permission to delete this task.'})
 
     chat_id = task.chat_id
+    participant_ids = _chat_participant_ids(chat_id, db)
+    task_title = task.title
+    system_message = add_system_message(chat_id, f'{current_user.username} deleted ticket "{task_title}".', db)
     db.delete(task)
     db.commit()
+    db.refresh(system_message)
 
     await manager.broadcast(chat_id, {'type': 'task_deleted', 'taskId': task_id, 'chatId': chat_id})
+    await manager.broadcast_users(participant_ids, {'type': 'task_deleted', 'taskId': task_id, 'chatId': chat_id})
+    await broadcast_system_message(system_message, db, participant_ids)
     return {'message': 'Task deleted successfully', 'taskId': task_id}
 
 

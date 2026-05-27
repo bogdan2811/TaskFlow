@@ -5,6 +5,7 @@ from fastapi import WebSocket
 class ConnectionManager:
     def __init__(self):
         self._rooms: Dict[int, Dict[WebSocket, int]] = {}
+        self._users: Dict[int, set[WebSocket]] = {}
 
     async def connect(self, chat_id: int, user_id: int, ws: WebSocket):
         await ws.accept()
@@ -18,6 +19,26 @@ class ConnectionManager:
         if not room:
             self._rooms.pop(chat_id, None)
 
+    async def connect_user(self, user_id: int, ws: WebSocket):
+        await ws.accept()
+        self._users.setdefault(user_id, set()).add(ws)
+
+    def disconnect_user_socket(self, user_id: int, ws: WebSocket):
+        sockets = self._users.get(user_id)
+        if not sockets:
+            return
+        sockets.discard(ws)
+        if not sockets:
+            self._users.pop(user_id, None)
+
+    async def disconnect_all_user_sockets(self, user_id: int, code: int = 4000, reason: str = ''):
+        sockets = self._users.get(user_id, set())
+        for ws in list(sockets):
+            try:
+                await ws.close(code=code, reason=reason)
+            finally:
+                self.disconnect_user_socket(user_id, ws)
+
     async def broadcast(self, chat_id: int, payload: dict, exclude_user_id: Optional[int] = None):
         dead: list[WebSocket] = []
         room = self._rooms.get(chat_id, {})
@@ -30,6 +51,17 @@ class ConnectionManager:
                 dead.append(ws)
         for ws in dead:
             self.disconnect(chat_id, ws)
+
+    async def broadcast_users(self, user_ids: list[int] | set[int], payload: dict):
+        dead: list[tuple[int, WebSocket]] = []
+        for user_id in set(user_ids):
+            for ws in list(self._users.get(user_id, set())):
+                try:
+                    await ws.send_json(payload)
+                except Exception:
+                    dead.append((user_id, ws))
+        for user_id, ws in dead:
+            self.disconnect_user_socket(user_id, ws)
 
     async def disconnect_user(self, chat_id: int, user_id: int, code: int = 4003, reason: str = ''):
         room = self._rooms.get(chat_id, {})

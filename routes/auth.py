@@ -13,7 +13,11 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from extensions import get_db
+from models.chat import Chat, ChatParticipant
+from models.task import Task, TaskAssignee
 from models.user import User
+from system_events import is_system_user
+from ws_manager import manager
 
 router = APIRouter(prefix='/api/auth', tags=['auth'])
 
@@ -46,6 +50,10 @@ class EditAccountRequest(BaseModel):
     confirmNewPassword: Optional[str] = None
 
 
+class DeleteAccountRequest(BaseModel):
+    currentPassword: str
+
+
 security = HTTPBearer()
 
 
@@ -61,6 +69,10 @@ def _decode_token_subject(token: str) -> int:
     return int(payload['sub'])
 
 
+def _is_deleted_user(user: User) -> bool:
+    return user.username.startswith('deleted_') or user.email.endswith('@deleted.taskflow.local')
+
+
 def _get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
@@ -73,7 +85,7 @@ def _get_current_user(
         raise HTTPException(status_code=401, detail={'error': 'Invalid or expired token'})
 
     user = db.query(User).filter_by(user_id=user_id).first()
-    if not user:
+    if not user or _is_deleted_user(user) or is_system_user(user):
         raise HTTPException(status_code=401, detail={'error': 'User not found'})
     return user
 
@@ -108,6 +120,62 @@ def _validate_password(password: str):
     return True, None
 
 
+def _participant_ids(chat_id: int, db: Session) -> list[int]:
+    rows = db.query(ChatParticipant).filter_by(chat_id=chat_id).order_by(
+        ChatParticipant.joined_at,
+        ChatParticipant.chat_participant_id,
+    ).all()
+    return [row.user_id for row in rows]
+
+
+def _transfer_or_remove_chat_memberships(user_id: int, db: Session) -> list[dict]:
+    events = []
+    memberships = db.query(ChatParticipant).filter_by(user_id=user_id).all()
+
+    for membership in memberships:
+        chat = db.query(Chat).filter_by(chat_id=membership.chat_id).first()
+        if not chat:
+            continue
+
+        remaining_ids = [uid for uid in _participant_ids(chat.chat_id, db) if uid != user_id]
+        if not remaining_ids:
+            events.append({'type': 'chat_deleted', 'chatId': chat.chat_id, 'participantIds': [user_id]})
+            db.delete(chat)
+            continue
+
+        new_owner_id = remaining_ids[0]
+        if chat.created_by == user_id:
+            chat.created_by = new_owner_id
+
+        tasks = db.query(Task).filter_by(chat_id=chat.chat_id).all()
+        for task in tasks:
+            if task.creator_id == user_id:
+                task.creator_id = new_owner_id
+                task.version += 1
+                task.updated_at = datetime.now(timezone.utc)
+
+        task_ids = [task.task_id for task in tasks]
+        if task_ids:
+            db.query(TaskAssignee).filter(
+                TaskAssignee.task_id.in_(task_ids),
+                TaskAssignee.assigned_by == user_id,
+            ).update({TaskAssignee.assigned_by: new_owner_id}, synchronize_session=False)
+            db.query(TaskAssignee).filter(
+                TaskAssignee.task_id.in_(task_ids),
+                TaskAssignee.user_id == user_id,
+            ).delete(synchronize_session=False)
+
+        db.delete(membership)
+        events.append({
+            'type': 'participant_left',
+            'chatId': chat.chat_id,
+            'userId': user_id,
+            'participantIds': remaining_ids,
+        })
+
+    return events
+
+
 @router.get('/health')
 def health():
     return {'status': 'ok'}
@@ -120,7 +188,7 @@ def get_me(current_user: User = Depends(_get_current_user)):
 
 @router.get('/users')
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(_get_current_user)):
-    users = db.query(User).all()
+    users = db.query(User).filter(~User.username.like('deleted_%'), User.email != 'system@taskflow.local').all()
     return [u.to_dict() for u in users]
 
 
@@ -178,7 +246,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter_by(email=email).first()
 
-    if not user or not pwd_context.verify(password, user.password_hash):
+    if not user or _is_deleted_user(user) or is_system_user(user) or not pwd_context.verify(password, user.password_hash):
         raise HTTPException(status_code=401, detail={'error': 'Invalid email or password'})
 
     try:
@@ -233,3 +301,60 @@ def edit_account(
     db.refresh(current_user)
 
     return {'message': 'Account updated successfully', 'user': current_user.to_dict()}
+
+
+@router.delete('/account')
+async def delete_account(
+    body: DeleteAccountRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    if not body.currentPassword:
+        raise HTTPException(status_code=400, detail={'field': 'currentPassword', 'error': 'Current password is required'})
+    if not pwd_context.verify(body.currentPassword, current_user.password_hash):
+        raise HTTPException(status_code=401, detail={'field': 'currentPassword', 'error': 'Incorrect password'})
+
+    user_id = current_user.user_id
+    events = _transfer_or_remove_chat_memberships(user_id, db)
+
+    remaining_assignee_links = db.query(TaskAssignee).filter_by(user_id=user_id).all()
+    for link in remaining_assignee_links:
+        db.delete(link)
+
+    remaining_assigned_by_links = db.query(TaskAssignee).filter_by(assigned_by=user_id).all()
+    for link in remaining_assigned_by_links:
+        task = db.query(Task).filter_by(task_id=link.task_id).first()
+        if task and task.creator_id != user_id:
+            link.assigned_by = task.creator_id
+        else:
+            db.delete(link)
+
+    remaining_created_tasks = db.query(Task).filter_by(creator_id=user_id).all()
+    for task in remaining_created_tasks:
+        participant_ids = _participant_ids(task.chat_id, db)
+        if participant_ids:
+            task.creator_id = participant_ids[0]
+            task.version += 1
+            task.updated_at = datetime.now(timezone.utc)
+        else:
+            task.creator_id = user_id
+
+    current_user.username = f'deleted_{user_id}'
+    current_user.email = f'deleted_{user_id}@deleted.taskflow.local'
+    current_user.password_hash = pwd_context.hash(os.urandom(32).hex())
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.commit()
+
+    for event in events:
+        if event['type'] == 'chat_deleted':
+            await manager.broadcast_users(event['participantIds'], {'type': 'chat_deleted', 'chatId': event['chatId']})
+            await manager.disconnect_chat(event['chatId'], reason='Chat deleted')
+            continue
+        await manager.broadcast_users(
+            event['participantIds'],
+            {'type': 'participant_left', 'chatId': event['chatId'], 'userId': user_id},
+        )
+        await manager.disconnect_user(event['chatId'], user_id, reason='Account deleted')
+
+    await manager.disconnect_all_user_sockets(user_id, reason='Account deleted')
+    return {'message': 'Account deleted successfully'}

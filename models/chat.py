@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Integer, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from extensions import Base
+from models.datetime_utils import utc_isoformat
 
 
 class Chat(Base):
@@ -19,7 +20,7 @@ class Chat(Base):
             'id': self.chat_id,
             'name': self.name,
             'createdBy': self.created_by,
-            'createdAt': self.created_at.isoformat(),
+            'createdAt': utc_isoformat(self.created_at),
         }
 
 
@@ -38,5 +39,5 @@ class ChatParticipant(Base):
         return {
             'chatId': self.chat_id,
             'userId': self.user_id,
-            'joinedAt': self.joined_at.isoformat(),
+            'joinedAt': utc_isoformat(self.joined_at),
         }

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Integer, String, DateTime
 from sqlalchemy.orm import mapped_column, Mapped
 from extensions import Base
+from models.datetime_utils import utc_isoformat
 
 
 class User(Base):
@@ -19,5 +20,5 @@ class User(Base):
             'id': self.user_id,
             'username': self.username,
             'email': self.email,
-            'createdAt': self.created_at.isoformat(),
+            'createdAt': utc_isoformat(self.created_at),
         }

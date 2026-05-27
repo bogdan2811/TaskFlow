@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import Integer, String, Text, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from extensions import Base
+from models.datetime_utils import utc_isoformat
 
 TASK_STATUSES = ('todo', 'in_progress', 'blocked', 'done')
 TASK_PRIORITIES = ('low', 'medium', 'high', 'critical')
@@ -53,8 +54,8 @@ class Task(Base):
             'dueDate': self.due_date.isoformat() if self.due_date else None,
             'version': self.version,
             'assigneeIds': [a.user_id for a in self.assignees],
-            'createdAt': self.created_at.isoformat(),
-            'updatedAt': self.updated_at.isoformat(),
+            'createdAt': utc_isoformat(self.created_at),
+            'updatedAt': utc_isoformat(self.updated_at),
         }
 
 

@@ -509,6 +509,11 @@
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.04);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
         }
 
         .chat-item:hover {
@@ -521,6 +526,54 @@
             border-color: rgba(139, 92, 246, 0.5);
             background: rgba(139, 92, 246, 0.12);
             box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+        }
+
+        .chat-item.unread {
+            border-color: rgba(6, 182, 212, 0.34);
+            background: rgba(6, 182, 212, 0.08);
+        }
+
+        .chat-content {
+            min-width: 0;
+        }
+
+        .chat-title-row {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unread-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--teal);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+            flex: 0 0 auto;
+        }
+
+        .archive-chat-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            opacity: 0;
+        }
+
+        .chat-item:hover .archive-chat-btn,
+        .archive-chat-btn:focus-visible {
+            opacity: 1;
+        }
+
+        .archive-chat-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .chat-name {
@@ -563,6 +616,13 @@
             align-self: flex-end;
         }
 
+        .message.system {
+            max-width: min(88%, 760px);
+            align-self: center;
+            text-align: center;
+            margin: 2px 0;
+        }
+
         .bubble {
             padding: 12px 16px;
             border-radius: 14px;
@@ -581,6 +641,27 @@
             background: linear-gradient(135deg, #7c3aed, #4f46e5);
             border-color: rgba(255, 255, 255, 0.1);
             box-shadow: 0 6px 18px rgba(124, 58, 237, 0.25);
+        }
+
+        .message.system .bubble {
+            display: inline-block;
+            max-width: min(100%, 620px);
+            padding: 6px 10px;
+            border-radius: 10px;
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.72);
+            border-color: rgba(148, 163, 184, 0.14);
+            box-shadow: none;
+            font-size: 0.74rem;
+            line-height: 1.35;
+        }
+
+        .message.system .message-meta {
+            display: none;
+        }
+
+        .message.system .sender-name {
+            display: none;
         }
 
         .message.selected .bubble {
@@ -1341,6 +1422,16 @@
                         </span>
                         <span class="btn-text">Refresh</span>
                     </button>
+                    <button id="toggleArchivedBtn" class="btn ghost small header-icon-btn" type="button" title="Show archived chats">
+                        <span class="btn-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 8v13H3V8"></path>
+                                <path d="M1 3h22v5H1z"></path>
+                                <path d="M10 12h4"></path>
+                            </svg>
+                        </span>
+                        <span class="btn-text">Archived</span>
+                    </button>
                 </div>
             </div>
             <div class="panel-body stack">
@@ -1546,6 +1637,8 @@
             categories: [],
             editingTask: null,
             ws: null,
+            userWs: null,
+            showArchived: false,
             socketReady: false,
             activePane: 'tasks'
         };
@@ -1573,6 +1666,7 @@
             registerForm: document.getElementById('registerForm'),
             refreshBtn: document.getElementById('refreshBtn'),
             showCreateChatBtn: document.getElementById('showCreateChatBtn'),
+            toggleArchivedBtn: document.getElementById('toggleArchivedBtn'),
             chatCountLabel: document.getElementById('chatCountLabel'),
             createChatModal: document.getElementById('createChatModal'),
             closeCreateChatBtn: document.getElementById('closeCreateChatBtn'),
@@ -1657,7 +1751,14 @@
 
         function userName(userId) {
             const user = state.users.find(item => item.id === userId);
-            return user ? user.username : `User ${userId}`;
+            return user ? user.username : 'Deleted User';
+        }
+
+        function messageSenderName(message) {
+            if (message.senderName) {
+                return message.senderName;
+            }
+            return userName(message.senderId);
         }
 
         function displayUserName(user) {
@@ -1756,7 +1857,9 @@
                 el.currentUserLabel.textContent = state.user.username;
                 applyCurrentUserAvatar();
                 await reloadAll();
+                connectUserSocket();
             } catch (error) {
+                closeUserSocket();
                 localStorage.removeItem('token');
                 state.token = null;
                 state.user = null;
@@ -1786,6 +1889,72 @@
         function applyCurrentUserAvatar() {
             const avatar = avatarSources[currentUserAvatarValue()] ? currentUserAvatarValue() : '1';
             el.currentUserAvatar.src = avatarSources[avatar];
+        }
+
+        function userStorageKey(name) {
+            return state.user ? `taskflow_${name}_${state.user.id}` : `taskflow_${name}_guest`;
+        }
+
+        function readJsonStorage(name, fallback) {
+            try {
+                const value = localStorage.getItem(userStorageKey(name));
+                return value ? JSON.parse(value) : fallback;
+            } catch {
+                return fallback;
+            }
+        }
+
+        function writeJsonStorage(name, value) {
+            localStorage.setItem(userStorageKey(name), JSON.stringify(value));
+        }
+
+        function readChatMap() {
+            return readJsonStorage('read_chats', {});
+        }
+
+        function archivedChatIds() {
+            return new Set(readJsonStorage('archived_chats', []));
+        }
+
+        function isChatArchived(chatId) {
+            return archivedChatIds().has(Number(chatId));
+        }
+
+        function setChatArchived(chatId, archived) {
+            const ids = archivedChatIds();
+            if (archived) {
+                ids.add(Number(chatId));
+            } else {
+                ids.delete(Number(chatId));
+            }
+            writeJsonStorage('archived_chats', [...ids]);
+        }
+
+        function lastMessageId(chat) {
+            return chat.lastMessage?.id || 0;
+        }
+
+        function isChatUnread(chat) {
+            if (!chat.lastMessage || state.selectedChat?.id === chat.id) {
+                return false;
+            }
+            const readMap = readChatMap();
+            return lastMessageId(chat) > Number(readMap[chat.id] || 0);
+        }
+
+        function markChatRead(chatId) {
+            const chat = state.chats.find(item => item.id === Number(chatId));
+            if (!chat || !chat.lastMessage) return;
+            const readMap = readChatMap();
+            readMap[chat.id] = lastMessageId(chat);
+            writeJsonStorage('read_chats', readMap);
+        }
+
+        function markMessageRead(chatId, messageId) {
+            if (!chatId || !messageId) return;
+            const readMap = readChatMap();
+            readMap[chatId] = Math.max(Number(readMap[chatId] || 0), Number(messageId));
+            writeJsonStorage('read_chats', readMap);
         }
 
         async function reloadAll() {
@@ -1826,21 +1995,43 @@
         }
 
         function renderChats() {
-            el.chatCountLabel.textContent = `${state.chats.length} total`;
-            el.chatList.innerHTML = state.chats.length
-                ? state.chats.map(chat => {
+            const archivedIds = archivedChatIds();
+            const visibleChats = state.chats.filter(chat => state.showArchived === archivedIds.has(chat.id));
+            const unreadTotal = state.chats.filter(isChatUnread).length;
+            const archivedTotal = archivedIds.size;
+            el.chatCountLabel.textContent = `${visibleChats.length} ${state.showArchived ? 'archived' : 'active'}${unreadTotal ? ` - ${unreadTotal} unread` : ''}`;
+            el.toggleArchivedBtn.classList.toggle('secondary', state.showArchived);
+            el.toggleArchivedBtn.title = state.showArchived ? 'Show active chats' : 'Show archived chats';
+            el.toggleArchivedBtn.querySelector('.btn-text').textContent = state.showArchived
+                ? 'Active'
+                : `Archived${archivedTotal ? ` (${archivedTotal})` : ''}`;
+
+            el.chatList.innerHTML = visibleChats.length
+                ? visibleChats.map(chat => {
                     const active = state.selectedChat?.id === chat.id ? 'active' : '';
+                    const unread = isChatUnread(chat);
+                    const archived = archivedIds.has(chat.id);
                     const lastMessage = chat.lastMessage
-                        ? `${userName(chat.lastMessage.senderId)}: ${truncateText(chat.lastMessage.content)}`
+                        ? `${messageSenderName(chat.lastMessage)}: ${truncateText(chat.lastMessage.content)}`
                         : 'No messages';
                     return `
-                        <button class="chat-item ${active}" type="button" data-chat-id="${chat.id}">
-                            <div class="chat-name">${escapeHtml(chat.name)}</div>
-                            <div class="chat-meta">${escapeHtml(lastMessage)}</div>
-                        </button>
+                        <article class="chat-item ${active} ${unread ? 'unread' : ''}" data-chat-id="${chat.id}" role="button" tabindex="0">
+                            <div class="chat-content">
+                                <div class="chat-title-row">
+                                    ${unread ? '<span class="unread-dot" aria-label="Unread"></span>' : ''}
+                                    <div class="chat-name">${escapeHtml(chat.name)}</div>
+                                </div>
+                                <div class="chat-meta">${escapeHtml(lastMessage)}</div>
+                            </div>
+                            <button class="archive-chat-btn" type="button" data-archive-chat="${chat.id}" title="${archived ? 'Unarchive chat' : 'Archive chat'}" aria-label="${archived ? 'Unarchive chat' : 'Archive chat'}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                    ${archived ? '<path d="M3 8v13h18V8"></path><path d="M1 3h22v5H1z"></path><path d="m8 15 4-4 4 4"></path><path d="M12 11v7"></path>' : '<path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="m8 12 4 4 4-4"></path><path d="M12 16V9"></path>'}
+                                </svg>
+                            </button>
+                        </article>
                     `;
                 }).join('')
-                : '<div class="empty">No chats</div>';
+                : `<div class="empty">No ${state.showArchived ? 'archived' : 'active'} chats</div>`;
         }
 
         async function selectChat(chatId, showToast = true) {
@@ -1860,6 +2051,7 @@
             state.selectedMessage = null;
             state.editingTask = null;
 
+            markChatRead(chatId);
             connectSocket(chatId);
             renderChats();
             renderActiveChat();
@@ -1936,26 +2128,27 @@
             const ownerId = state.selectedChat.createdBy;
             let lastSenderId = null;
             el.messages.innerHTML = state.messages.map(message => {
-                const isMine = message.senderId === state.user.id;
+                const isSystem = Boolean(message.senderSystem);
+                const isMine = !isSystem && message.senderId === state.user.id;
                 const canDelete = isMine || ownerId === state.user.id;
                 const selected = state.selectedMessage?.id === message.id ? 'selected' : '';
-                const isConsecutive = message.senderId === lastSenderId;
-                lastSenderId = message.senderId;
+                const isConsecutive = !isSystem && message.senderId === lastSenderId;
+                lastSenderId = isSystem ? null : message.senderId;
                 return `
-                    <article class="message ${isMine ? 'mine' : ''} ${selected} ${isConsecutive ? 'consecutive' : ''}" data-message-id="${message.id}">
+                    <article class="message ${isMine ? 'mine' : ''} ${isSystem ? 'system' : ''} ${selected} ${isConsecutive ? 'consecutive' : ''}" data-message-id="${message.id}">
                         <div class="message-meta">
                             <span class="sender-name">
                                 <img class="sender-mini-avatar" src="${avatarSrcForUser(message.senderId)}" alt="">
-                                <span>${escapeHtml(userName(message.senderId))}</span>
+                                <span>${escapeHtml(messageSenderName(message))}</span>
                             </span>
                             <span class="message-time">${formatDate(message.sentAt)}</span>
                         </div>
                         <div class="bubble">${escapeHtml(message.content)}</div>
-                        <div class="message-actions">
+                        ${isSystem ? '' : `<div class="message-actions">
                             <button class="btn ghost small" type="button" data-task-message="${message.id}">Task</button>
                             ${isMine ? `<button class="btn ghost small" type="button" data-edit-message="${message.id}">Edit</button>` : ''}
                             ${canDelete ? `<button class="btn ghost small" type="button" data-delete-message="${message.id}">Delete</button>` : ''}
-                        </div>
+                        </div>`}
                     </article>
                 `;
             }).join('');
@@ -2216,6 +2409,28 @@
             });
         }
 
+        function connectUserSocket() {
+            if (state.userWs) {
+                state.userWs.close();
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const url = `${protocol}://${window.location.host}/ws/user?token=${encodeURIComponent(state.token)}`;
+            const ws = new WebSocket(url);
+            state.userWs = ws;
+
+            ws.addEventListener('message', event => {
+                const data = JSON.parse(event.data);
+                handleUserSocketEvent(data);
+            });
+
+            ws.addEventListener('close', () => {
+                if (state.userWs === ws) {
+                    state.userWs = null;
+                }
+            });
+        }
+
         function closeSocket() {
             if (state.ws) {
                 state.ws.close();
@@ -2223,6 +2438,13 @@
             state.ws = null;
             state.socketReady = false;
             updateSocketLabel();
+        }
+
+        function closeUserSocket() {
+            if (state.userWs) {
+                state.userWs.close();
+            }
+            state.userWs = null;
         }
 
         function updateSocketLabel() {
@@ -2235,12 +2457,15 @@
 
         async function handleSocketEvent(data) {
             if (data.type === 'message_created') {
+                await ensureUserKnown(data.message.senderId);
                 upsertMessage(data.message);
+                markMessageRead(data.message.chatId, data.message.id);
                 renderMessages();
                 refreshChatListQuietly();
                 return;
             }
             if (data.type === 'message_updated') {
+                await ensureUserKnown(data.message.senderId);
                 upsertMessage(data.message);
                 if (state.selectedMessage?.id === data.message.id) {
                     state.selectedMessage = data.message;
@@ -2309,6 +2534,41 @@
             }
         }
 
+        async function handleUserSocketEvent(data) {
+            if (['chat_created', 'chat_participants_added'].includes(data.type)) {
+                await refreshUsersQuietly();
+                await refreshChatListQuietly();
+                return;
+            }
+
+            if (['chat_message_created', 'chat_message_updated', 'chat_message_deleted'].includes(data.type)) {
+                const isSelectedChat = state.selectedChat?.id === data.chatId;
+
+                if (isSelectedChat && data.message) {
+                    await ensureUserKnown(data.message.senderId);
+                    if (data.type === 'chat_message_deleted') {
+                        state.messages = state.messages.filter(message => message.id !== data.message.id);
+                        if (state.selectedMessage?.id === data.message.id) {
+                            state.selectedMessage = null;
+                        }
+                    } else {
+                        upsertMessage(data.message);
+                        markMessageRead(data.message.chatId, data.message.id);
+                        if (state.selectedMessage?.id === data.message.id) {
+                            state.selectedMessage = data.message;
+                        }
+                    }
+                    renderMessages();
+                    renderTaskForm();
+                }
+
+                if (data.message) {
+                    await ensureUserKnown(data.message.senderId);
+                }
+                await refreshChatListQuietly();
+            }
+        }
+
         function upsertMessage(message) {
             const index = state.messages.findIndex(item => item.id === message.id);
             if (index >= 0) {
@@ -2327,6 +2587,27 @@
             } catch (error) {
                 console.warn(error);
             }
+        }
+
+        async function refreshUsersQuietly() {
+            try {
+                state.users = await api('/api/auth/users');
+                renderUsers();
+                renderChats();
+                renderMessages();
+                renderMembers();
+                renderTaskForm();
+                renderTasks();
+            } catch (error) {
+                console.warn(error);
+            }
+        }
+
+        async function ensureUserKnown(userId) {
+            if (!userId || state.users.some(user => user.id === userId)) {
+                return;
+            }
+            await refreshUsersQuietly();
         }
 
         async function refreshTasksAndCategories() {
@@ -2411,12 +2692,13 @@
         });
 
         el.logoutBtn.addEventListener('click', () => {
+            closeUserSocket();
             closeSocket();
             localStorage.removeItem('token');
             state.token = null;
             state.user = null;
             clearSelection();
-            window.location.href = '/login';
+            window.location.href = '/';
         });
 
         // Toggle user profile dropdown menu
@@ -2470,6 +2752,14 @@
             }
         });
 
+        el.toggleArchivedBtn.addEventListener('click', () => {
+            state.showArchived = !state.showArchived;
+            if (state.selectedChat && isChatArchived(state.selectedChat.id) !== state.showArchived) {
+                clearSelection();
+            }
+            renderChats();
+        });
+
         el.showCreateChatBtn.addEventListener('click', () => {
             el.createChatForm.reset();
             el.createChatModal.classList.remove('hidden');
@@ -2506,10 +2796,35 @@
         });
 
         el.chatList.addEventListener('click', async event => {
-            const button = event.target.closest('[data-chat-id]');
-            if (!button) return;
+            const archiveButton = event.target.closest('[data-archive-chat]');
+            if (archiveButton) {
+                const chatId = Number(archiveButton.dataset.archiveChat);
+                const archived = !isChatArchived(chatId);
+                setChatArchived(chatId, archived);
+                if (archived && state.selectedChat?.id === chatId && !state.showArchived) {
+                    clearSelection();
+                }
+                renderChats();
+                showStatus(archived ? 'Chat archived' : 'Chat unarchived');
+                return;
+            }
+
+            const item = event.target.closest('[data-chat-id]');
+            if (!item) return;
             try {
-                await selectChat(Number(button.dataset.chatId));
+                await selectChat(Number(item.dataset.chatId));
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        });
+
+        el.chatList.addEventListener('keydown', async event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const item = event.target.closest('[data-chat-id]');
+            if (!item || event.target.closest('[data-archive-chat]')) return;
+            event.preventDefault();
+            try {
+                await selectChat(Number(item.dataset.chatId));
             } catch (error) {
                 showStatus(error.message, 'error');
             }
