@@ -16,7 +16,7 @@ from extensions import get_db
 from models.chat import Chat, ChatParticipant
 from models.task import Task, TaskAssignee
 from models.user import User
-from system_events import is_system_user
+from system_events import add_system_message, broadcast_system_message, is_system_user
 from ws_manager import manager
 
 router = APIRouter(prefix='/api/auth', tags=['auth'])
@@ -230,6 +230,14 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=pwd_context.hash(password),
     )
     db.add(user)
+    db.flush()
+
+    personal_chat = Chat(name='You', created_by=user.user_id)
+    db.add(personal_chat)
+    db.flush()
+    db.add(ChatParticipant(chat_id=personal_chat.chat_id, user_id=user.user_id))
+    add_system_message(personal_chat.chat_id, f'{user.username} created your personal conversation.', db)
+
     db.commit()
     db.refresh(user)
 
@@ -262,11 +270,15 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.patch('/account')
-def edit_account(
+async def edit_account(
     body: EditAccountRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(_get_current_user),
 ):
+    old_username = current_user.username
+    username_changed = False
+    username_audit_messages = []
+
     if body.username is not None:
         username_raw = body.username.strip()
         ok, err = _validate_username(username_raw)
@@ -274,7 +286,9 @@ def edit_account(
             raise HTTPException(status_code=422, detail={'field': 'username', 'error': err})
         if db.query(User).filter(func.lower(User.username) == username_raw.lower(), User.user_id != current_user.user_id).first():
             raise HTTPException(status_code=409, detail={'field': 'username', 'error': 'Username already exists'})
-        current_user.username = username_raw
+        if username_raw != current_user.username:
+            current_user.username = username_raw
+            username_changed = True
 
     if body.email is not None:
         email_raw = body.email.strip().lower()
@@ -297,8 +311,25 @@ def edit_account(
             raise HTTPException(status_code=422, detail={'field': 'confirmNewPassword', 'error': 'Passwords do not match'})
         current_user.password_hash = pwd_context.hash(body.newPassword)
 
+    if username_changed:
+        chat_ids = [
+            row.chat_id
+            for row in db.query(ChatParticipant.chat_id).filter_by(user_id=current_user.user_id).all()
+        ]
+        for chat_id in chat_ids:
+            username_audit_messages.append(
+                add_system_message(
+                    chat_id,
+                    f'{old_username} changed their username to {current_user.username}.',
+                    db,
+                )
+            )
+
     db.commit()
     db.refresh(current_user)
+
+    for message in username_audit_messages:
+        await broadcast_system_message(message, db)
 
     return {'message': 'Account updated successfully', 'user': current_user.to_dict()}
 

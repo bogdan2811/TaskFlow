@@ -81,6 +81,10 @@ async def websocket_endpoint(chat_id: int, websocket: WebSocket, db: Session = D
         return
 
     await manager.connect(chat_id, user_id, websocket)
+    await manager.broadcast(
+        chat_id,
+        {'type': 'presence_updated', 'chatId': chat_id, 'onlineCount': manager.online_user_count(chat_id)},
+    )
 
     try:
         while True:
@@ -143,3 +147,7 @@ async def websocket_endpoint(chat_id: int, websocket: WebSocket, db: Session = D
         pass
     finally:
         manager.disconnect(chat_id, websocket)
+        await manager.broadcast(
+            chat_id,
+            {'type': 'presence_updated', 'chatId': chat_id, 'onlineCount': manager.online_user_count(chat_id)},
+        )

@@ -317,6 +317,70 @@
             color: #ffffff;
         }
 
+        .people-picker {
+            position: relative;
+            min-width: 0;
+        }
+
+        .people-picker-panel {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 40;
+            max-height: 280px;
+            overflow: auto;
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(13, 17, 34, 0.98);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.48);
+        }
+
+        .people-picker-section {
+            display: grid;
+            gap: 4px;
+        }
+
+        .people-picker-section + .people-picker-section {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .people-picker-title {
+            padding: 0 6px 4px;
+            color: var(--muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .people-picker-option {
+            width: 100%;
+            min-height: 40px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            background: transparent;
+            text-align: left;
+        }
+
+        .people-picker-option:hover,
+        .people-picker-option.selected {
+            background: rgba(139, 92, 246, 0.16);
+        }
+
+        .people-picker-empty {
+            padding: 10px 8px;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
         .check-row {
             display: flex;
             align-items: center;
@@ -795,12 +859,57 @@
             align-items: center;
             gap: 8px;
             min-width: 0;
+            flex: 1;
         }
 
         .person-details {
+            position: relative;
             min-width: 0;
             display: grid;
             gap: 2px;
+        }
+
+        .member-email {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: text;
+            user-select: text;
+        }
+
+        .member-email:focus {
+            outline: 1px solid rgba(139, 92, 246, 0.45);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .member-email:hover,
+        .member-email:focus {
+            position: absolute;
+            left: 0;
+            top: 100%;
+            z-index: 20;
+            width: max-content;
+            max-width: min(360px, calc(100vw - 64px));
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 16, 31, 0.96);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+            color: #e2e8f0;
+            white-space: normal;
+            overflow: visible;
+            overflow-wrap: anywhere;
+        }
+
+        .member-row .inline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .mini-avatar {
@@ -1399,7 +1508,7 @@
         <section class="panel chats-panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <h2>Chats</h2>
+                    <h2 id="chatPanelTitle">Chats</h2>
                     <span id="chatCountLabel"></span>
                 </div>
                 <div class="inline" style="gap: 6px;">
@@ -1424,7 +1533,7 @@
                     </button>
                     <button id="toggleArchivedBtn" class="btn ghost small header-icon-btn" type="button" title="Show archived chats">
                         <span class="btn-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <svg id="toggleArchivedIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 8v13H3V8"></path>
                                 <path d="M1 3h22v5H1z"></path>
                                 <path d="M10 12h4"></path>
@@ -1493,9 +1602,12 @@
 
                         <form id="addMemberForm" class="stack">
                             <div class="field">
-                                <label for="addMemberSelect" class="muted">Add Member</label>
+                                <label for="addMemberSearch" class="muted">Add Member</label>
                                 <div class="split">
-                                    <select id="addMemberSelect" class="select" disabled></select>
+                                    <div class="people-picker">
+                                        <input id="addMemberSearch" class="input" type="search" placeholder="Search" autocomplete="off" disabled>
+                                        <div id="addMemberDropdown" class="people-picker-panel hidden"></div>
+                                    </div>
                                     <button id="addMemberBtn" class="btn secondary small" type="submit" disabled>Add</button>
                                 </div>
                             </div>
@@ -1636,8 +1748,10 @@
             tasks: [],
             categories: [],
             editingTask: null,
+            selectedAddMemberId: null,
             ws: null,
             userWs: null,
+            onlineCount: null,
             showArchived: false,
             socketReady: false,
             activePane: 'tasks'
@@ -1667,6 +1781,8 @@
             refreshBtn: document.getElementById('refreshBtn'),
             showCreateChatBtn: document.getElementById('showCreateChatBtn'),
             toggleArchivedBtn: document.getElementById('toggleArchivedBtn'),
+            toggleArchivedIcon: document.getElementById('toggleArchivedIcon'),
+            chatPanelTitle: document.getElementById('chatPanelTitle'),
             chatCountLabel: document.getElementById('chatCountLabel'),
             createChatModal: document.getElementById('createChatModal'),
             closeCreateChatBtn: document.getElementById('closeCreateChatBtn'),
@@ -1694,7 +1810,8 @@
             deleteChatBtn: document.getElementById('deleteChatBtn'),
             participantsList: document.getElementById('participantsList'),
             addMemberForm: document.getElementById('addMemberForm'),
-            addMemberSelect: document.getElementById('addMemberSelect'),
+            addMemberSearch: document.getElementById('addMemberSearch'),
+            addMemberDropdown: document.getElementById('addMemberDropdown'),
             addMemberBtn: document.getElementById('addMemberBtn'),
             taskForm: document.getElementById('taskForm'),
             showTaskFormBtn: document.getElementById('showTaskFormBtn'),
@@ -1819,6 +1936,13 @@
 
         function canDeleteTask(task) {
             return task.creatorId === state.user?.id;
+        }
+
+        function onlineText() {
+            const count = Number.isInteger(state.onlineCount)
+                ? state.onlineCount
+                : (state.socketReady ? 1 : 0);
+            return `${count} online`;
         }
 
         function formatDate(value) {
@@ -1999,12 +2123,16 @@
             const visibleChats = state.chats.filter(chat => state.showArchived === archivedIds.has(chat.id));
             const unreadTotal = state.chats.filter(isChatUnread).length;
             const archivedTotal = archivedIds.size;
+            el.chatPanelTitle.textContent = state.showArchived ? 'Archived' : 'Chats';
             el.chatCountLabel.textContent = `${visibleChats.length} ${state.showArchived ? 'archived' : 'active'}${unreadTotal ? ` - ${unreadTotal} unread` : ''}`;
             el.toggleArchivedBtn.classList.toggle('secondary', state.showArchived);
             el.toggleArchivedBtn.title = state.showArchived ? 'Show active chats' : 'Show archived chats';
             el.toggleArchivedBtn.querySelector('.btn-text').textContent = state.showArchived
-                ? 'Active'
+                ? 'Chats'
                 : `Archived${archivedTotal ? ` (${archivedTotal})` : ''}`;
+            el.toggleArchivedIcon.innerHTML = state.showArchived
+                ? '<path d="m15 18-6-6 6-6"></path><path d="M9 12h12"></path><path d="M4 5h8"></path><path d="M4 19h8"></path>'
+                : '<path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path>';
 
             el.chatList.innerHTML = visibleChats.length
                 ? visibleChats.map(chat => {
@@ -2050,6 +2178,9 @@
             state.categories = categoriesData.categories || [];
             state.selectedMessage = null;
             state.editingTask = null;
+            state.selectedAddMemberId = null;
+            el.addMemberSearch.value = '';
+            state.onlineCount = null;
 
             markChatRead(chatId);
             connectSocket(chatId);
@@ -2074,6 +2205,8 @@
             state.categories = [];
             state.selectedMessage = null;
             state.editingTask = null;
+            state.selectedAddMemberId = null;
+            state.onlineCount = null;
             renderChats();
             renderActiveChat();
             renderMessages();
@@ -2088,9 +2221,7 @@
         function renderActiveChat() {
             const hasChat = Boolean(state.selectedChat);
             el.activeChatName.textContent = hasChat ? state.selectedChat.name : 'No chat selected';
-            el.activeChatMeta.textContent = hasChat
-                ? (state.socketReady ? '1 online' : '0 online')
-                : '';
+            el.activeChatMeta.textContent = hasChat ? onlineText() : '';
             el.renameChatName.value = hasChat ? state.selectedChat.name : '';
             el.messageInput.disabled = !hasChat;
             el.sendMessageBtn.disabled = !hasChat || !el.messageInput.value.trim();
@@ -2103,8 +2234,8 @@
             el.renameChatName.disabled = !isOwner;
             el.renameChatBtn.disabled = !isOwner;
             el.deleteChatBtn.disabled = !isOwner;
-            el.addMemberSelect.disabled = !isOwner;
-            el.addMemberBtn.disabled = !isOwner;
+            el.addMemberSearch.disabled = !isOwner;
+            el.addMemberBtn.disabled = !isOwner || !state.selectedAddMemberId;
 
             const adminSection = document.getElementById('chatAdminSection');
             if (adminSection) {
@@ -2130,7 +2261,6 @@
             el.messages.innerHTML = state.messages.map(message => {
                 const isSystem = Boolean(message.senderSystem);
                 const isMine = !isSystem && message.senderId === state.user.id;
-                const canDelete = isMine || ownerId === state.user.id;
                 const selected = state.selectedMessage?.id === message.id ? 'selected' : '';
                 const isConsecutive = !isSystem && message.senderId === lastSenderId;
                 lastSenderId = isSystem ? null : message.senderId;
@@ -2147,7 +2277,7 @@
                         ${isSystem ? '' : `<div class="message-actions">
                             <button class="btn ghost small" type="button" data-task-message="${message.id}">Task</button>
                             ${isMine ? `<button class="btn ghost small" type="button" data-edit-message="${message.id}">Edit</button>` : ''}
-                            ${canDelete ? `<button class="btn ghost small" type="button" data-delete-message="${message.id}">Delete</button>` : ''}
+                            ${isMine ? `<button class="btn ghost small" type="button" data-delete-message="${message.id}">Delete</button>` : ''}
                         </div>`}
                     </article>
                 `;
@@ -2155,19 +2285,85 @@
             el.messages.scrollTop = el.messages.scrollHeight;
         }
 
+        function availableMembers() {
+            if (!state.selectedChat) return [];
+            const participantIds = new Set(state.participants.map(user => user.id));
+            return sortUsersByName(state.users.filter(user => !participantIds.has(user.id)));
+        }
+
+        function renderAddMemberDropdown(forceOpen = false) {
+            if (!state.selectedChat) {
+                el.addMemberDropdown.classList.add('hidden');
+                return;
+            }
+
+            const query = el.addMemberSearch.value.trim().toLowerCase();
+            const users = availableMembers();
+            const filtered = users.filter(user => {
+                const value = `${user.username} ${user.email}`.toLowerCase();
+                return !query || value.includes(query);
+            });
+            const suggested = filtered.slice(0, 3);
+
+            const optionMarkup = user => `
+                <button class="people-picker-option ${state.selectedAddMemberId === user.id ? 'selected' : ''}" type="button" data-add-member-option="${user.id}">
+                    <img class="mini-avatar" src="${avatarSrcForUser(user.id)}" alt="">
+                    <span class="person-details">
+                        <span class="name">${escapeHtml(displayUserName(user))}</span>
+                        <span class="muted member-email" title="${escapeHtml(user.email)}">${escapeHtml(user.email)}</span>
+                    </span>
+                </button>
+            `;
+
+            if (!filtered.length) {
+                el.addMemberDropdown.innerHTML = '<div class="people-picker-empty">No users found</div>';
+            } else {
+                el.addMemberDropdown.innerHTML = `
+                    <div class="people-picker-section">
+                        <div class="people-picker-title">Suggested</div>
+                        ${suggested.map(optionMarkup).join('')}
+                    </div>
+                    <div class="people-picker-section">
+                        <div class="people-picker-title">All people</div>
+                        ${filtered.map(optionMarkup).join('')}
+                    </div>
+                `;
+            }
+
+            const isOwner = state.selectedChat.createdBy === state.user.id;
+            el.addMemberDropdown.classList.toggle('hidden', !forceOpen || !isOwner);
+        }
+
+        function selectAddMember(userId) {
+            const user = availableMembers().find(item => item.id === userId);
+            if (!user) return;
+            state.selectedAddMemberId = user.id;
+            el.addMemberSearch.value = `${displayUserName(user)} (${user.email})`;
+            el.addMemberDropdown.classList.add('hidden');
+            renderActiveChat();
+        }
+
+        function resetAddMemberPicker() {
+            state.selectedAddMemberId = null;
+            el.addMemberSearch.value = '';
+            renderAddMemberDropdown(false);
+            renderActiveChat();
+        }
+
         function renderMembers() {
             if (!state.selectedChat) {
                 el.participantsList.innerHTML = '<div class="empty">No chat selected</div>';
-                el.addMemberSelect.innerHTML = '';
+                resetAddMemberPicker();
                 return;
             }
 
             const isOwner = state.selectedChat.createdBy === state.user.id;
-            const participantIds = new Set(state.participants.map(user => user.id));
-            const options = sortUsersByName(state.users
-                .filter(user => !participantIds.has(user.id))
-            ).map(user => `<option value="${user.id}">${escapeHtml(displayUserName(user))} (${escapeHtml(user.email)})</option>`);
-            el.addMemberSelect.innerHTML = options.length ? options.join('') : '<option value="">No users</option>';
+            if (state.selectedAddMemberId && !availableMembers().some(user => user.id === state.selectedAddMemberId)) {
+                resetAddMemberPicker();
+            } else {
+                renderAddMemberDropdown(false);
+                renderActiveChat();
+            }
 
             el.participantsList.innerHTML = orderedParticipants().map(user => {
                 const owner = user.id === state.selectedChat.createdBy;
@@ -2179,7 +2375,7 @@
                                 <img class="mini-avatar" src="${avatarSrcForUser(user.id)}" alt="">
                                 <div class="person-details">
                                     <div class="name">${escapeHtml(displayUserName(user))}</div>
-                                    <div class="muted">${escapeHtml(user.email)}</div>
+                                    <div class="muted member-email" title="${escapeHtml(user.email)}" tabindex="0">${escapeHtml(user.email)}</div>
                                 </div>
                             </div>
                             <div class="inline">
@@ -2451,11 +2647,18 @@
             el.socketLabel.textContent = state.socketReady ? 'Live' : 'Offline';
             el.socketLabel.classList.toggle('live', state.socketReady);
             if (state.selectedChat) {
-                el.activeChatMeta.textContent = state.socketReady ? '1 online' : '0 online';
+                el.activeChatMeta.textContent = onlineText();
             }
         }
 
         async function handleSocketEvent(data) {
+            if (data.type === 'presence_updated') {
+                if (state.selectedChat && data.chatId === state.selectedChat.id) {
+                    state.onlineCount = Number(data.onlineCount) || 0;
+                    renderActiveChat();
+                }
+                return;
+            }
             if (data.type === 'message_created') {
                 await ensureUserKnown(data.message.senderId);
                 upsertMessage(data.message);
@@ -2725,6 +2928,10 @@
         window.addEventListener('keydown', event => {
             if (event.key === 'Escape' && !el.createChatModal.classList.contains('hidden')) {
                 closeCreateChatModal();
+                return;
+            }
+            if (event.key === 'Escape' && state.selectedChat) {
+                clearSelection();
             }
         });
 
@@ -2759,6 +2966,13 @@
             }
             renderChats();
         });
+
+        el.appPage.addEventListener('click', event => {
+            if (!state.selectedChat) return;
+            if (event.target.closest('.messages-panel')) return;
+            if (event.target.closest('.details-panel')) return;
+            clearSelection();
+        }, true);
 
         el.showCreateChatBtn.addEventListener('click', () => {
             el.createChatForm.reset();
@@ -2958,20 +3172,45 @@
 
         el.addMemberForm.addEventListener('submit', async event => {
             event.preventDefault();
-            if (!state.selectedChat || !el.addMemberSelect.value) return;
+            if (!state.selectedChat || !state.selectedAddMemberId) return;
             try {
                 const data = await api(`/api/chats/${state.selectedChat.id}/participants`, {
                     method: 'POST',
-                    body: JSON.stringify({ user_id: Number(el.addMemberSelect.value) })
+                    body: JSON.stringify({ user_id: state.selectedAddMemberId })
                 });
                 state.selectedChat = data.chat;
                 state.participants = data.chat.participants || [];
+                resetAddMemberPicker();
                 renderMembers();
                 renderActiveChat();
                 await reloadAll();
                 showStatus('Member added');
             } catch (error) {
                 showStatus(error.message, 'error');
+            }
+        });
+
+        el.addMemberSearch.addEventListener('focus', () => {
+            if (!el.addMemberSearch.disabled) {
+                renderAddMemberDropdown(true);
+            }
+        });
+
+        el.addMemberSearch.addEventListener('input', () => {
+            state.selectedAddMemberId = null;
+            renderActiveChat();
+            renderAddMemberDropdown(true);
+        });
+
+        el.addMemberDropdown.addEventListener('click', event => {
+            const option = event.target.closest('[data-add-member-option]');
+            if (!option) return;
+            selectAddMember(Number(option.dataset.addMemberOption));
+        });
+
+        document.addEventListener('click', event => {
+            if (!el.addMemberForm.contains(event.target)) {
+                el.addMemberDropdown.classList.add('hidden');
             }
         });
 

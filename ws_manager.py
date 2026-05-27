@@ -11,6 +11,9 @@ class ConnectionManager:
         await ws.accept()
         self._rooms.setdefault(chat_id, {})[ws] = user_id
 
+    def online_user_count(self, chat_id: int) -> int:
+        return len(set(self._rooms.get(chat_id, {}).values()))
+
     def disconnect(self, chat_id: int, ws: WebSocket):
         room = self._rooms.get(chat_id)
         if not room:

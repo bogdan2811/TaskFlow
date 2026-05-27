@@ -220,12 +220,24 @@ async def update_chat(
     if not name:
         raise HTTPException(status_code=422, detail={'field': 'name', 'error': 'Chat name is required'})
 
+    old_name = chat.name
     chat.name = name
+    system_message = None
+    if old_name != name:
+        system_message = add_system_message(
+            chat_id,
+            f'{current_user.username} renamed the conversation from "{old_name}" to "{name}".',
+            db,
+        )
     db.commit()
     db.refresh(chat)
+    if system_message:
+        db.refresh(system_message)
 
     payload = _chat_payload(chat, db, include_participants=True)
     await _broadcast_chat(chat_id, 'chat_updated', {'chat': payload})
+    if system_message:
+        await broadcast_system_message(system_message, db)
     return {'message': 'Chat updated successfully', 'chat': payload}
 
 
@@ -461,10 +473,10 @@ async def delete_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(_get_current_user),
 ):
-    chat = _require_participant(current_user.user_id, chat_id, db)
+    _require_participant(current_user.user_id, chat_id, db)
     message = _message_for_chat(chat_id, message_id, db)
-    if message.sender_id != current_user.user_id and chat.created_by != current_user.user_id:
-        raise HTTPException(status_code=403, detail={'error': 'Only the sender or chat owner can delete this message'})
+    if message.sender_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail={'error': 'Only the sender can delete this message'})
 
     sender = db.query(User).filter_by(user_id=message.sender_id).first()
     payload = message.to_dict(sender)
